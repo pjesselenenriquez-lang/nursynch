@@ -121,13 +121,13 @@ export default function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const navItems = [["logbook", "Logbook"], ["new", "New Entry"], ["reports", "Reports / Export"], ["about", "About NURSYNCH"]];
+  const navItems = [["logbook", "Logbook"], ["new", "New Entry"], ["reports", "Reports / Export"], ["about", "About UgnayLunas"]];
 
   if (!token) {
     return (
       <main className="wrap" style={{ maxWidth: 480, textAlign: "center", marginTop: 80 }}>
-        <div className="seal" style={{ margin: "0 auto 16px" }}>MSU<br />GENSAN</div>
-        <h2 style={{ color: "var(--purple)", fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 400, margin: 0 }}>NURSYNCH</h2>
+        <div className="seal" style={{ margin: "0 auto 16px" }}></div>
+        <h2 style={{ color: "var(--purple)", fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 400, margin: 0 }}>UgnayLunas</h2>
         <p className="muted">Sign in with an authorized Google account to open the infirmary logbook.</p>
         {error && <div className="notice" role="alert">{error}</div>}
         <div style={{ display: "flex", justifyContent: "center" }}>
@@ -144,7 +144,7 @@ export default function App() {
     <>
       <header className="top">
         <div className="brand">
-          <div className="seal" aria-label="MSU–General Santos text mark">MSU<br />GENSAN</div>
+          <div className="seal" aria-label="MSU–General Santos text mark"></div>
           <div>
             <h1>Mindanao State University–General Santos</h1>
             <p>University Infirmary · Nursing Services Logbook</p>
@@ -163,12 +163,8 @@ export default function App() {
 
       <main className="wrap">
         <section className="heading">
-          <div><h2>NURSYNCH</h2><div className="muted">Nursing Services Synchronization System</div></div>
-          <span className="muted">Academic prototype · Sample data only</span>
+          <div><h2>UgnayLunas</h2><div className="muted">Nursing Services Synchronization System</div></div>
         </section>
-        <div className="notice">
-          <strong>Prototype notice:</strong> Entries are saved to a shared Google Sheet visible to authorized staff. Do not enter patient-identifying or confidential health information.
-        </div>
 
         {error && <div className="notice" role="alert">{error}</div>}
         {loading && <div className="muted" style={{ marginBottom: 12 }}>Loading entries…</div>}
@@ -287,14 +283,14 @@ export default function App() {
 
         {view === "about" && (
           <section className="panel report-panel">
-            <h3>About NURSYNCH</h3>
-            <p>NURSYNCH (Nursing Services Synchronization System) is a proposed web-based daily logbook for recording infirmary service counts by date and shift, with a format intended to support nursing documentation and administrative review.</p>
+            <h3>About UgnayLunas</h3>
+            <p>UgnayLunas (Nursing Services Synchronization System) is a proposed web-based daily logbook for recording infirmary service counts by date and shift, with a format intended to support nursing documentation and administrative review.</p>
             <p className="muted">This is an academic prototype, not an official MSU system. The text-based university heading is a placeholder and does not reproduce an official seal or wordmark.</p>
           </section>
         )}
       </main>
 
-      <footer className="footer">NURSYNCH · Proposed MSU–General Santos Infirmary system · Academic prototype</footer>
+      <footer className="footer">UgnayLunas · Proposed MSU–General Santos Infirmary system · Academic prototype</footer>
     </>
   );
 }
