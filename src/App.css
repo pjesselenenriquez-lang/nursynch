@@ -8,7 +8,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #ffcf66;outline-offset:2px}
 .top{background:#fff;border-bottom:5px solid var(--purple);padding:17px clamp(15px,4vw,52px) 0}
 .brand{display:flex;align-items:center;gap:15px;max-width:1600px;margin:auto;padding-bottom:16px}
-.seal{height:58px;width:58px;background:url("./logo.png");background-size:58px;border-radius:999px;display:grid;place-items:center;color:var(--purple);font-weight:700;font-size:11px;text-align:center;flex-shrink:0;line-height:1.15}
+.seal{height:58px;width:58px;background:url("/logo.png");background-size:58px;border-radius:999px;display:grid;place-items:center;color:var(--purple);font-weight:700;font-size:11px;text-align:center;flex-shrink:0;line-height:1.15}
 .brand h1{font-family:"Friz Quadrata","EB Garamond",Georgia,serif;font-weight:400;font-size:clamp(19px,2.2vw,28px);margin:0 0 3px;color:var(--purple)}
 .brand p{margin:0;color:#4e424c;font-size:11px;letter-spacing:1.4px;text-transform:uppercase}
 .accent{height:5px;width:45px;background:var(--orange);margin-top:9px}
