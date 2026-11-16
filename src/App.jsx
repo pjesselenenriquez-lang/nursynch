@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { GoogleLogin } from "@react-oauth/google";
 import "./App.css";
 
-const STORAGE_KEY = "nursynch_daily_logbook_v2";
+const TOKEN_KEY = "nursynch_token";
 
 const FIELDS = [
   ["date", "Date", "text"], ["shift", "Shift", "text"],
@@ -25,16 +26,27 @@ const blankForm = () => ({
   ...Object.fromEntries(NUMBER_FIELDS.map(([k]) => [k, 0])),
 });
 
-function loadEntries() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch { return []; }
+async function api(token, method = "GET", body) {
+  const res = await fetch("/api/entries", {
+    method,
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const err = new Error(res.status === 403 ? "This Google account is not on the allowed list." : "Request failed.");
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
 }
 
 export default function App() {
   const [view, setView] = useState("logbook");
-  const [entries, setEntries] = useState(loadEntries);
+  const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY));
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [grouped, setGrouped] = useState(false);
   const [search, setSearch] = useState("");
@@ -42,10 +54,20 @@ export default function App() {
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(blankForm);
 
+  const signOut = (msg = "") => {
+    sessionStorage.removeItem(TOKEN_KEY);
+    setToken(null); setEntries([]); setError(msg);
+  };
+  const onApiError = (e) => {
+    if (e.status === 401 || e.status === 403) signOut(e.message === "Request failed." ? "Your session expired. Please sign in again." : e.message);
+    else setError("Could not reach the logbook. Check your connection and try again.");
+  };
+
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
-    catch { alert("Could not save in browser storage. Please check browser settings."); }
-  }, [entries]);
+    if (!token) return;
+    setLoading(true);
+    api(token).then((rows) => { setEntries(rows); setError(""); }).catch(onApiError).finally(() => setLoading(false));
+  }, [token]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -73,14 +95,20 @@ export default function App() {
   const closeForm = () => { setFormOpen(false); setForm(blankForm()); };
   const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const submit = (ev) => {
+  const submit = async (ev) => {
     ev.preventDefault();
-    const entry = { ...form, nod: form.nod.trim(), notes: form.notes.trim(), id: crypto.randomUUID?.() ?? String(Date.now()) };
-    NUMBER_FIELDS.forEach(([k]) => { entry[k] = String(Math.max(0, Number(entry[k]) || 0)); });
-    setEntries((prev) => [entry, ...prev]);
-    setSelectedId(entry.id);
-    setSearch(""); setFilterDate("");
-    closeForm();
+    const body = { ...form, nod: form.nod.trim(), notes: form.notes.trim() };
+    NUMBER_FIELDS.forEach(([k]) => { body[k] = String(Math.max(0, Number(body[k]) || 0)); });
+    setSaving(true);
+    try {
+      const saved = await api(token, "POST", body);
+      setEntries((prev) => [saved, ...prev]);
+      setSelectedId(saved.id);
+      setSearch(""); setFilterDate("");
+      setError("");
+      closeForm();
+    } catch (e) { onApiError(e); }
+    finally { setSaving(false); }
   };
 
   const exportCsv = () => {
@@ -94,6 +122,23 @@ export default function App() {
   };
 
   const navItems = [["logbook", "Logbook"], ["new", "New Entry"], ["reports", "Reports / Export"], ["about", "About NURSYNCH"]];
+
+  if (!token) {
+    return (
+      <main className="wrap" style={{ maxWidth: 480, textAlign: "center", marginTop: 80 }}>
+        <div className="seal" style={{ margin: "0 auto 16px" }}>MSU<br />GENSAN</div>
+        <h2 style={{ color: "var(--purple)", fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 400, margin: 0 }}>NURSYNCH</h2>
+        <p className="muted">Sign in with an authorized Google account to open the infirmary logbook.</p>
+        {error && <div className="notice" role="alert">{error}</div>}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <GoogleLogin
+            onSuccess={(r) => { sessionStorage.setItem(TOKEN_KEY, r.credential); setError(""); setToken(r.credential); }}
+            onError={() => setError("Google sign-in failed. Please try again.")}
+          />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <>
@@ -112,6 +157,7 @@ export default function App() {
               {label}
             </button>
           ))}
+          <button style={{ marginLeft: "auto" }} onClick={() => signOut()}>Sign out</button>
         </nav>
       </header>
 
@@ -121,8 +167,11 @@ export default function App() {
           <span className="muted">Academic prototype · Sample data only</span>
         </section>
         <div className="notice">
-          <strong>Prototype notice:</strong> Entries are stored only in this browser. Shared staff access, login, and secure database storage are not enabled. Do not enter patient-identifying or confidential health information.
+          <strong>Prototype notice:</strong> Entries are saved to a shared Google Sheet visible to authorized staff. Do not enter patient-identifying or confidential health information.
         </div>
+
+        {error && <div className="notice" role="alert">{error}</div>}
+        {loading && <div className="muted" style={{ marginBottom: 12 }}>Loading entries…</div>}
 
         <section className="stats">
           <div className="stat"><span>Logbook Entries</span><strong>{entries.length}</strong></div>
@@ -188,7 +237,7 @@ export default function App() {
                     </div>
                   </div>
                   <div className="actions">
-                    <button className="primary" type="submit">Save Logbook Entry</button>
+                    <button className="primary" type="submit" disabled={saving}>{saving ? "Saving…" : "Save Logbook Entry"}</button>
                     <button type="button" onClick={closeForm}>Cancel</button>
                   </div>
                 </form>
