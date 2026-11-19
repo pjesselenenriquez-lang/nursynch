@@ -6,6 +6,9 @@ const TOKEN_KEY = "nursynch_token";
 
 const FIELDS = [
   ["date", "Date", "text"], ["shift", "Shift", "text"],
+  ["name", "Name", "text"],
+  ["college", "College/Department", "text"],
+  ["idNumber", "Student ID/Faculty ID", "text"],
   ["physicalExam", "Physical Exam", "number"], ["ftf", "FTF Consultation", "number"],
   ["online", "Online Consultation", "number"], ["admissions", "Admissions OR", "number"],
   ["referral", "Referral", "number"], ["death", "Death", "number"],
@@ -23,6 +26,7 @@ const today = () =>
 
 const blankForm = () => ({
   date: today(), shift: "Morning", nod: "", status: "Recorded", notes: "",
+  name: "", college: "", idNumber: "",
   ...Object.fromEntries(NUMBER_FIELDS.map(([k]) => [k, 0])),
 });
 
@@ -97,7 +101,14 @@ export default function App() {
 
   const submit = async (ev) => {
     ev.preventDefault();
-    const body = { ...form, nod: form.nod.trim(), notes: form.notes.trim() };
+    const body = {
+      ...form,
+      name: form.name.trim(),
+      college: form.college.trim(),
+      idNumber: form.idNumber.trim(),
+      nod: form.nod.trim(),
+      notes: form.notes.trim(),
+    };
     NUMBER_FIELDS.forEach(([k]) => { body[k] = String(Math.max(0, Number(body[k]) || 0)); });
     setSaving(true);
     try {
@@ -188,7 +199,7 @@ export default function App() {
             <div className="toolbar">
               <button className={!grouped ? "active" : ""} onClick={() => setGrouped(false)}>Flat View</button>
               <button className={grouped ? "active" : ""} onClick={() => setGrouped(true)}>Group by Shift</button>
-              <input className="search" type="search" placeholder="Search date, shift, NOD..." aria-label="Search logbook entries" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <input className="search" type="search" placeholder="Search date, shift, name, ID, NOD..." aria-label="Search logbook entries" value={search} onChange={(e) => setSearch(e.target.value)} />
               <label className="muted" htmlFor="filterDate">Date</label>
               <input id="filterDate" type="date" style={{ width: "auto", minWidth: 145 }} value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
               <button onClick={() => { setSearch(""); setFilterDate(""); }}>Clear</button>
@@ -198,7 +209,7 @@ export default function App() {
             {formOpen && (
               <div className="formarea">
                 <h3>Create Daily Logbook Entry</h3>
-                <p className="form-note">Enter the daily counts for the selected date and shift. Counts are recorded exactly as entered; totals are not automatically calculated because service categories may overlap.</p>
+                <p className="form-note">Enter the person's details and the service counts for the selected date and shift. Counts are recorded exactly as entered; totals are not automatically calculated because service categories may overlap.</p>
                 <form onSubmit={submit}>
                   <div className="grid">
                     <div className="field">
@@ -210,6 +221,18 @@ export default function App() {
                       <select id="shift" value={form.shift} onChange={(e) => setField("shift", e.target.value)}>
                         {SHIFTS.map((s) => <option key={s}>{s}</option>)}
                       </select>
+                    </div>
+                    <div className="field">
+                      <label htmlFor="name">Name</label>
+                      <input id="name" maxLength={120} required placeholder="Full name" value={form.name} onChange={(e) => setField("name", e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="college">College/Department</label>
+                      <input id="college" maxLength={120} required placeholder="e.g., College of Nursing" value={form.college} onChange={(e) => setField("college", e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="idNumber">Student ID/Faculty ID</label>
+                      <input id="idNumber" maxLength={50} required placeholder="ID number" value={form.idNumber} onChange={(e) => setField("idNumber", e.target.value)} />
                     </div>
                     {NUMBER_FIELDS.map(([k, label]) => (
                       <div className="field" key={k}>
@@ -228,7 +251,7 @@ export default function App() {
                       </select>
                     </div>
                     <div className="field full">
-                      <label htmlFor="notes">Notes (optional; no patient-identifying information)</label>
+                      <label htmlFor="notes">Notes (optional; do not include diagnoses or clinical details)</label>
                       <textarea id="notes" rows={3} maxLength={1000} placeholder="General operational notes, if needed" value={form.notes} onChange={(e) => setField("notes", e.target.value)} />
                     </div>
                   </div>
@@ -263,6 +286,7 @@ export default function App() {
               {selected ? (
                 <>
                   <p className="muted">{selected.date} · {selected.shift} shift · NOD: {selected.nod} · Status: {selected.status}</p>
+                  <p className="muted">{selected.name} · {selected.college} · ID: {selected.idNumber}</p>
                   <p>Notes: {selected.notes || "None provided"}</p>
                   <span className={"badge " + (selected.status === "Recorded" ? "ok" : "pending")}>{selected.status}</span>
                 </>
@@ -294,3 +318,5 @@ export default function App() {
     </>
   );
 }
+ 
+    
