@@ -2,32 +2,31 @@ import { useEffect, useMemo, useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import "./App.css";
 
+
 const TOKEN_KEY = "nursynch_token";
 
-// Checklist of reasons for visit (CHECKBOXES). Each ticked area is also evaluated at Time Out.
+// Checklist of reasons for visit (CHECKBOXES, pick one or more)
 const SERVICES = [
   "Physical Exam", "FTF Consultation", "Online Consultation", "Referral",
   "Minor Procedure", "Dental", "Medical Certificate", "BP", "RBS", "Clearance",
 ];
 // Code (RADIO, pick one)
-const CODES = { S: "Student", E: "Employee", D: "Dependent", O: "Outsider" };
-// Evaluation scale (RADIO, 1 to 5, one rating per area visited)
+const CODES = { S: "Student", D: "Dependent", E: "Employee", O: "Outsider" };
+// Patient evaluation (RADIO, pick one)
 const RATINGS = [[5, "Excellent"], [4, "Very Good"], [3, "Good"], [2, "Fair"], [1, "Poor"]];
-// Columns only the administrator account can see
-const EVAL_KEYS = ["serviceRatings", "rating", "comments"];
 
-// [key, label, format]  format: text | list | code | ratings | rating
+// [key, label, format]  format: text | list | code | rating
 const FIELDS = [
   ["recordNo", "Record / Control No.", "text"],
   ["date", "Date", "text"],
   ["timeIn", "Time In", "text"],
   ["timeOut", "Time Out", "text"],
-  ["code", "Code (S/E/D/O)", "code"],
+  ["code", "Code", "code"],
   ["name", "Name", "text"],
   ["college", "College/Department", "text"],
   ["services", "Reason for Visit", "list"],
-  ["serviceRatings", "Ratings by Area", "ratings"],
-  ["rating", "Overall Rating", "rating"],
+  ["rating", "Overall Evaluation", "rating"],
+  ["serviceRatings", "Service Area Ratings", "object"],
   ["comments", "Evaluation Comments", "text"],
 ];
 
@@ -35,26 +34,21 @@ const today = () =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 const nowTime = () =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
-const mean = (a) => (a.length ? a.reduce((s, n) => s + n, 0) / a.length : 0);
 
 const blankForm = () => ({ date: today(), timeIn: nowTime(), code: "S", name: "", college: "", services: [] });
-const blankOut = (entry) => ({
-  id: entry.id, timeOut: nowTime(), comments: "",
-  ratings: Object.fromEntries((entry.services || []).map((s) => [s, 0])),
-});
+const blankOut = (id, services = []) => ({ id, timeOut: nowTime(), rating: 0, serviceRatings: Object.fromEntries(services.map((service) => [service, 0])), comments: "" });
 
 const show = (e, k, type) => {
   const v = e[k];
   if (type === "list") return Array.isArray(v) ? v.join(", ") : v ?? "";
   if (type === "code") return v ? v + " – " + (CODES[v] || "") : "";
-  if (type === "ratings") return v && typeof v === "object" ? Object.entries(v).map(([a, n]) => a + ": " + n).join("; ") : "";
-  if (type === "rating") return Number(v) > 0 ? Number(v).toFixed(1) + " / 5" : "";
+  if (type === "rating") return Number(v) ? v + " / 5" + (Number.isInteger(Number(v)) ? " – " + ((RATINGS.find(([n]) => n === Number(v)) || [])[1] || "") : "") : "";
+  if (type === "object") return v && typeof v === "object" ? Object.entries(v).map(([name, rating]) => `${name}: ${rating}/5`).join("; ") : "";
   return v ?? "";
 };
 
-async function api(token, method = "GET", body, id, qs = "") {
-  const url = "/api/entries" + (id ? "?id=" + encodeURIComponent(id) : qs ? "?" + qs : "");
-  const res = await fetch(url, {
+async function api(token, method = "GET", body, id) {
+  const res = await fetch("/api/entries" + (id ? "?id=" + encodeURIComponent(id) : ""), {
     method,
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
@@ -67,87 +61,138 @@ async function api(token, method = "GET", body, id, qs = "") {
   return res.json();
 }
 
-const group = { display: "flex", flexWrap: "wrap", gap: "10px 22px" };
-const opt = { display: "flex", alignItems: "center", gap: 8, fontWeight: 400 };
+const group = { display: "flex", flexWrap: "wrap", gap: "8px 18px" };
+const opt = { display: "flex", alignItems: "center", gap: 6, fontWeight: 400 };
 
-// ---------- Effects, bigger text, minimalist background, login page ----------
+// ---------- Glitter and shine effects (pure CSS animation, no image files needed) ----------
 const GLITTER_CSS = `
-/* bigger text everywhere */
-html{font-size:18px}
-body{font-size:18px;line-height:1.55}
-.brand h1{font-size:30px}
-.brand p{font-size:15px}
-.nav button{font-size:18px;padding:12px 20px}
-.heading h2{font-size:52px}
-.muted{font-size:17px}
-.stat span{font-size:18px}
-.stat strong{font-size:44px}
-.panelhead h3,.report-panel h3{font-size:28px}
-.formarea h3{font-size:26px}
-.form-note,.notice,.report-panel p{font-size:17px}
-label{font-size:17px}
-input,select,textarea,button{font-size:17px}
-th{font-size:16px}
-td{font-size:17px}
-.details h4{font-size:24px}
-.details p{font-size:18px}
-.badge{font-size:15px}
-.footer{font-size:15px}
+/* gold bar flowing under the university name */
+.top .accent{background-image:linear-gradient(90deg,#f5a623,#fff3b0,#f5a623,#ffd66b,#f5a623);
+  background-size:200% 100%;animation:gold-flow 3s linear infinite}
+@keyframes gold-flow{to{background-position:-200% 0}}
 
-/* minimalist, elegant background: clean white fading to a soft grey-lavender */
+/* shiny sweep across buttons and stat cards */
+button.primary,.stat{position:relative;overflow:hidden}
+button.primary::after,.stat::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);
+  transform:skewX(-20deg);animation:sheen 3.5s ease-in-out infinite}
+.stat::after{background:linear-gradient(100deg,transparent,rgba(255,215,100,.35),transparent);animation-duration:5s}
+@keyframes sheen{0%{left:-60%}60%,100%{left:130%}}
+
+/* shimmering gold highlight moving across the "UgnayLunas" title */
+.shine-text{background:linear-gradient(100deg,#6b0f5a 0%,#6b0f5a 40%,#e0a800 50%,#6b0f5a 60%,#6b0f5a 100%);
+  background-size:250% 100%;-webkit-background-clip:text;background-clip:text;
+  color:transparent !important;-webkit-text-fill-color:transparent;animation:text-shine 4s linear infinite}
+@keyframes text-shine{0%{background-position:150% 0}100%{background-position:-150% 0}}
+
+/* clean pastel background with a few subtle gold glitters */
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:linear-gradient(180deg,#ffffff 0%,#f6f4f8 100%)}
-body::after{content:none}
+  background:
+    radial-gradient(circle at 12% 18%,rgba(245,166,35,.5) 0 1px,transparent 2px),
+    radial-gradient(circle at 86% 22%,rgba(245,166,35,.42) 0 1px,transparent 2px),
+    radial-gradient(circle at 78% 76%,rgba(245,166,35,.4) 0 1px,transparent 2px),
+    radial-gradient(circle at 24% 84%,rgba(245,166,35,.38) 0 1px,transparent 2px),
+    linear-gradient(180deg,rgba(107,15,90,.04),transparent 260px),
+    linear-gradient(135deg,#fbfafc,#f0ecf4)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(circle at 12% 18%,rgba(255,214,107,.55) 0 2px,transparent 3px),
+    radial-gradient(circle at 86% 22%,rgba(255,214,107,.45) 0 2px,transparent 3px),
+    radial-gradient(circle at 78% 76%,rgba(255,214,107,.4) 0 2px,transparent 3px)}
 
-/* login page */
-.lg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:100vh}
-.lg-brand{background:linear-gradient(160deg,var(--purple,#6b0f5a),#3f0834);color:#fff;padding:64px 56px;
-  display:flex;flex-direction:column;justify-content:center}
-.lg-seal{width:92px;height:92px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 0 6px rgba(255,255,255,.18);margin-bottom:28px}
-.lg-brand h1{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:38px;line-height:1.2;margin:0 0 8px;color:#fff}
-.lg-brand .lg-sub{letter-spacing:.14em;text-transform:uppercase;font-size:15px;opacity:.85;margin:0}
-.lg-rule{width:72px;height:3px;background:#f5a623;margin:30px 0}
-.lg-brand h3{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:34px;margin:0 0 10px;color:#fff}
-.lg-tag{font-size:19px;opacity:.9;max-width:440px;margin:0}
-.lg-card{display:flex;flex-direction:column;justify-content:center;padding:56px;max-width:540px;width:100%;
-  margin:0 auto;box-sizing:border-box}
-.lg-card h2{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:58px;margin:0 0 6px;color:var(--purple,#6b0f5a)}
-.lg-card p{font-size:19px;color:#4b4452;margin:0 0 24px}
-.lg-google{display:flex;margin:6px 0 20px}
-.lg-link{align-self:flex-start;background:none;border:0;color:var(--purple,#6b0f5a);text-decoration:underline;
-  padding:6px 0;cursor:pointer;font-size:18px}
-.lg-link:hover:not(:disabled){box-shadow:none;transform:none;color:#3f0834}
-.lg-steps{margin:10px 0 0;padding-left:24px;font-size:18px;color:#4b4452;line-height:1.7}
-.lg-note{margin-top:30px !important;font-size:16px !important;color:#7a7283 !important;
-  border-top:1px solid #e8e3ec;padding-top:18px}
-@media(max-width:820px){.lg{grid-template-columns:1fr}.lg-brand{padding:40px 28px}.lg-card{padding:36px 24px}
-  .lg-card h2{font-size:46px}}
+/* glowing logo and title */
+.seal{animation:seal-glow 3s ease-in-out infinite}
+@keyframes seal-glow{0%,100%{filter:drop-shadow(0 0 3px rgba(245,166,35,.45))}50%{filter:drop-shadow(0 0 14px rgba(245,166,35,.95))}}
+.shine-text{filter:drop-shadow(0 0 6px rgba(224,168,0,.35))}
 
-/* evaluations (administrator only) */
-.eval-overall{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin:18px 0 8px}
-.eval-overall span{font-size:20px}
-.eval-overall strong{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:72px;line-height:1;color:var(--purple,#6b0f5a)}
-.eval-overall em{font-style:normal;color:#6b6472;font-size:17px}
-.eval-row{display:grid;grid-template-columns:minmax(150px,230px) 1fr 70px 120px;align-items:center;gap:16px;
-  padding:12px 0;border-bottom:1px solid #eee}
-.eval-row .bar{height:12px;background:#ece8ef;border-radius:99px;overflow:hidden}
-.eval-row .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--purple,#6b0f5a),#f5a623)}
-.eval-row small{color:#6b6472;font-size:15px}
-.eval-comment{border-left:3px solid #f5a623;padding:6px 16px;margin:14px 0}
-.eval-comment small{display:block;color:#6b6472;font-size:15px}
-@media(max-width:700px){.eval-row{grid-template-columns:1fr 70px}.eval-row .bar,.eval-row small{grid-column:1/-1}}
+/* form fields light up when you click into them */
+input:focus,select:focus,textarea:focus{outline:none;border-color:#b04fd0;
+  box-shadow:0 0 0 3px rgba(176,79,208,.2),0 0 14px rgba(176,79,208,.45)}
+input,select,textarea{transition:box-shadow .25s,border-color .25s}
 
-/* rating rows in the Time Out form */
-.rate-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 24px;padding:12px 0;border-bottom:1px solid #eee}
-.rate-row b{min-width:200px;font-weight:600;font-size:18px}
+/* buttons glow on hover; the main buttons also pulse softly */
+button{transition:box-shadow .25s,transform .2s}
+button:hover:not(:disabled){box-shadow:0 0 14px rgba(176,79,208,.5);transform:translateY(-1px)}
+button.primary{animation:pulse-glow 2.6s ease-in-out infinite}
+button.primary:hover:not(:disabled){animation:none;box-shadow:0 0 20px rgba(255,200,60,.9),0 0 6px rgba(107,15,90,.6)}
+button:disabled{animation:none;box-shadow:none}
+.nav button.active{box-shadow:0 0 12px rgba(245,166,35,.45)}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 rgba(255,200,60,0)}50%{box-shadow:0 0 16px rgba(255,200,60,.65)}}
 
-/* printing: only the table */
-@media print{.nav,.toolbar,.footer,.formarea,.actions,.stats,.heading,.details button{display:none !important}
-  body::before{display:none}}
+/* cards and panels float in, and lift with a glow on hover */
+.stat,.panel,.formarea,.notice{animation:rise-in .6s ease both}
+.stat:nth-child(2){animation-delay:.1s}
+.stat:nth-child(3){animation-delay:.2s}
+.stat{transition:box-shadow .3s,transform .3s}
+.stat:hover{transform:translateY(-3px);box-shadow:0 6px 22px rgba(107,15,90,.28),0 0 18px rgba(255,213,74,.35)}
+@keyframes rise-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
-%%OLD_CSS%%`;
+/* table rows glow when pointed at or selected */
+tbody tr{transition:background .2s,box-shadow .2s}
+tbody tr:hover{background:rgba(255,213,74,.14);box-shadow:inset 3px 0 0 #f5a623}
+tbody tr.selected{background:linear-gradient(90deg,rgba(255,213,74,.28),rgba(197,139,255,.18));box-shadow:inset 3px 0 0 #6b0f5a}
 
+/* status badges glow: green = completed, amber = still inside */
+.badge.ok{animation:glow-green 2.6s ease-in-out infinite}
+.badge.pending{animation:glow-amber 1.8s ease-in-out infinite}
+@keyframes glow-green{0%,100%{box-shadow:0 0 0 rgba(46,160,67,0)}50%{box-shadow:0 0 12px rgba(46,160,67,.7)}}
+@keyframes glow-amber{0%,100%{box-shadow:0 0 0 rgba(245,166,35,0)}50%{box-shadow:0 0 14px rgba(245,166,35,.85)}}
+
+/* people who turn off animations in their device settings get a still page */
+@media (prefers-reduced-motion:reduce){
+  .shine-text,.top .accent,button.primary::after,.stat::after,
+  .seal,button.primary,.badge,.stat,.panel,.formarea,.notice{animation:none}
+}
+
+/* Larger, more readable type while preserving the existing layout */
+body{font-size:17px;line-height:1.6}
+body p,body label,body input,body select,body textarea,body button,body td,body th{font-size:1rem}
+h1{font-size:clamp(1.45rem,2.4vw,2rem)}
+h2{font-size:clamp(2.2rem,4vw,3rem)}
+h3{font-size:1.45rem}
+h4{font-size:1.2rem}
+.muted,.form-note{font-size:.98rem}
+button{min-height:42px;padding:10px 15px}
+input,select,textarea{min-height:43px;padding:10px 12px}
+.stat span{font-size:1rem}.stat strong{font-size:2rem}
+th,td{padding:12px 14px}
+.quick-actions{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px}
+.quick-actions button{background:#fff;border:1px solid rgba(107,15,90,.2);border-radius:12px;color:#6b0f5a;font-weight:600}
+.service-rating{padding:14px;margin:10px 0;border:1px solid rgba(107,15,90,.16);border-radius:14px;background:rgba(255,255,255,.7)}
+.service-rating strong{display:block;margin-bottom:8px;font-size:1.05rem}
+.rating-preview{padding:12px 14px;border-radius:12px;background:rgba(245,166,35,.12)}
+.saved-evaluation{padding:12px 16px;border-radius:12px;background:rgba(107,15,90,.05)}
+.login-wrap{max-width:100%!important;min-height:75vh;display:flex;align-items:center;justify-content:center}
+.login-card{width:min(100%,580px);padding:42px 36px;border:1px solid rgba(107,15,90,.14);border-radius:28px;background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(249,244,252,.94));box-shadow:0 22px 70px rgba(67,30,76,.14),0 0 0 8px rgba(255,255,255,.3);position:relative;overflow:hidden}
+.login-card:before{content:"";position:absolute;inset:0 0 auto;height:7px;background:linear-gradient(90deg,#6b0f5a,#d7a928,#f6e7a8,#6b0f5a)}
+.login-card h2{margin:0;font-size:clamp(2.7rem,6vw,3.8rem)!important;line-height:1.15}
+.login-card .muted{font-size:1.08rem;max-width:390px;margin:14px auto}
+.login-welcome{max-width:400px;margin:16px auto;color:#5e5064}
+.login-footnote{font-size:.88rem;color:#7c7180;margin-top:26px}
+
+/* Login-only ambient glow: soft purple and MSU-inspired gold, kept minimal */
+.login-wrap{position:relative;isolation:isolate;padding:28px 18px 54px}
+.login-wrap:before,.login-wrap:after{content:"";position:absolute;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(2px)}
+.login-wrap:before{width:300px;height:300px;top:8%;left:calc(50% - 340px);background:radial-gradient(circle,rgba(190,126,230,.19),rgba(190,126,230,0) 70%);animation:login-orbit 8s ease-in-out infinite alternate}
+.login-wrap:after{width:330px;height:330px;bottom:0;right:calc(50% - 360px);background:radial-gradient(circle,rgba(245,190,63,.2),rgba(245,190,63,0) 70%);animation:login-orbit 9s ease-in-out infinite alternate-reverse}
+@keyframes login-orbit{from{transform:translate3d(0,-8px,0) scale(.94);opacity:.65}to{transform:translate3d(10px,12px,0) scale(1.08);opacity:1}}
+.login-card{isolation:isolate;box-shadow:0 22px 70px rgba(67,30,76,.16),0 0 24px rgba(157,91,190,.12),0 0 0 1px rgba(255,255,255,.7);transition:box-shadow .35s,transform .35s}
+.login-card:after{content:"";position:absolute;inset:7px;border:1px solid rgba(245,190,63,.13);border-radius:22px;pointer-events:none;z-index:-1}
+.login-card:hover{box-shadow:0 26px 78px rgba(67,30,76,.2),0 0 32px rgba(157,91,190,.2),0 0 18px rgba(245,190,63,.13)}
+.login-card .seal{position:relative;z-index:1;filter:drop-shadow(0 0 7px rgba(245,166,35,.65)) drop-shadow(0 0 18px rgba(176,79,208,.25));animation:logo-aura 3s ease-in-out infinite}
+.login-card .seal:before{content:"";position:absolute;inset:-13px;border:1px solid rgba(245,190,63,.48);border-radius:50%;box-shadow:0 0 10px rgba(245,166,35,.18),inset 0 0 10px rgba(176,79,208,.1);pointer-events:none}
+.login-card .seal:after{content:"✦";position:absolute;right:-13px;top:-7px;color:#e2b43c;font-size:16px;text-shadow:0 0 7px rgba(245,166,35,.95);animation:twinkle 2.2s ease-in-out infinite;pointer-events:none}
+@keyframes logo-aura{0%,100%{filter:drop-shadow(0 0 5px rgba(245,166,35,.5)) drop-shadow(0 0 12px rgba(176,79,208,.16))}50%{filter:drop-shadow(0 0 11px rgba(245,166,35,.95)) drop-shadow(0 0 22px rgba(176,79,208,.38))}}
+@keyframes twinkle{0%,100%{opacity:.55;transform:scale(.85) rotate(0)}50%{opacity:1;transform:scale(1.18) rotate(18deg)}}
+.login-card h2{animation:title-aura 3.5s ease-in-out infinite}
+@keyframes title-aura{0%,100%{text-shadow:0 0 7px rgba(176,79,208,.1),0 0 12px rgba(245,190,63,.08)}50%{text-shadow:0 0 11px rgba(176,79,208,.24),0 0 20px rgba(245,190,63,.22)}}
+.login-card .login-welcome{padding:10px 14px;border-radius:14px;background:linear-gradient(100deg,rgba(176,79,208,.055),rgba(245,190,63,.09),rgba(176,79,208,.055));border:1px solid rgba(107,15,90,.06)}
+.login-card [role="button"],.login-card iframe{border-radius:12px}
+.login-card button{box-shadow:0 4px 16px rgba(107,15,90,.08)}
+@media (prefers-reduced-motion:reduce){.login-wrap:before,.login-wrap:after,.login-card .seal,.login-card .seal:after,.login-card h2{animation:none!important}}
+@media(max-width:600px){.login-card{padding:34px 20px;border-radius:22px}.quick-actions button{flex:1 1 42%}}
+@media print{.top nav,.toolbar,.quick-actions,.actions,button{display:none!important}body::before,body::after{display:none!important}}
+}`;
 function Styles() {
   return <style>{GLITTER_CSS}</style>;
 }
@@ -155,7 +200,6 @@ function Styles() {
 export default function App() {
   const [view, setView] = useState("logbook");
   const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY));
-  const [isAdmin, setIsAdmin] = useState(false);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -163,69 +207,44 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState("");
   const [filterDate, setFilterDate] = useState("");
-  const [onlyInside, setOnlyInside] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(blankForm);
-  const [out, setOut] = useState(null); // Time Out + evaluation form
-  const [help, setHelp] = useState(false);
+  const [out, setOut] = useState(null); // time-out + evaluation form
 
   const signOut = (msg = "") => {
     sessionStorage.removeItem(TOKEN_KEY);
-    setToken(null); setEntries([]); setIsAdmin(false); setView("logbook"); setError(msg);
+    setToken(null); setEntries([]); setError(msg);
   };
   const onApiError = (e) => {
     if (e.status === 401 || e.status === 403) signOut(e.message === "Request failed." ? "Your session expired. Please sign in again." : e.message);
     else setError("Could not reach the logbook. Check your connection and try again.");
   };
 
-  const load = () => {
+  useEffect(() => {
     if (!token) return;
     setLoading(true);
     api(token).then((rows) => { setEntries(rows); setError(""); }).catch(onApiError).finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    if (!token) return;
-    load();
-    api(token, "GET", undefined, undefined, "me=1").then((r) => setIsAdmin(!!r.isAdmin)).catch(() => setIsAdmin(false));
   }, [token]);
-
-  // Only the administrator account gets the evaluation columns
-  const cols = useMemo(() => FIELDS.filter(([k]) => isAdmin || !EVAL_KEYS.includes(k)), [isAdmin]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return entries
       .filter((e) => {
-        const text = cols.map(([k, , t]) => show(e, k, t)).join(" ").toLowerCase();
-        return text.includes(q) && (!filterDate || e.date === filterDate) && (!onlyInside || !e.timeOut);
+        const text = FIELDS.map(([k, , t]) => show(e, k, t)).join(" ").toLowerCase();
+        return text.includes(q) && (!filterDate || e.date === filterDate);
       })
       .sort((a, b) => (b.date + " " + b.timeIn).localeCompare(a.date + " " + a.timeIn));
-  }, [entries, search, filterDate, onlyInside, cols]);
-
-  // Rating of each area = average of its ratings. Overall infirmary rating = average of the area averages.
-  const areaStats = useMemo(() => {
-    const acc = {};
-    entries.forEach((e) =>
-      Object.entries(e.serviceRatings || {}).forEach(([a, n]) => {
-        n = Number(n);
-        if (n > 0) (acc[a] = acc[a] || []).push(n);
-      })
-    );
-    const byArea = Object.fromEntries(Object.entries(acc).map(([a, arr]) => [a, { avg: mean(arr), count: arr.length }]));
-    const avgs = Object.values(byArea).map((r) => r.avg);
-    return { byArea, overall: avgs.length ? mean(avgs) : 0, areasRated: avgs.length };
-  }, [entries]);
-
-  const reviews = useMemo(
-    () => entries.filter((e) => e.comments).sort((a, b) => (b.date + b.timeIn).localeCompare(a.date + a.timeIn)),
-    [entries]
-  );
+  }, [entries, search, filterDate]);
 
   const selected = entries.find((e) => e.id === selectedId);
   const todayCount = entries.filter((e) => e.date === today()).length;
   const inside = entries.filter((e) => !e.timeOut).length;
-  const completed = entries.filter((e) => e.timeOut).length;
+  const rated = entries.filter((e) => Number(e.rating) > 0);
+  const avg = rated.length ? (rated.reduce((s, e) => s + Number(e.rating), 0) / rated.length).toFixed(1) : "–";
+
+  // Control No. format: YYYYMMDD-001 (counts per date). Ideally assigned by the server.
+  const nextRecordNo = (date) =>
+    date.replaceAll("-", "") + "-" + String(entries.filter((e) => e.date === date).length + 1).padStart(3, "0");
 
   const openForm = () => { setView("logbook"); setFormOpen(true); };
   const closeForm = () => { setFormOpen(false); setForm(blankForm()); };
@@ -233,26 +252,32 @@ export default function App() {
   const toggleService = (s) =>
     setForm((f) => ({ ...f, services: f.services.includes(s) ? f.services.filter((x) => x !== s) : [...f.services, s] }));
   const goTo = (v) => (v === "new" ? openForm() : setView(v));
-
-  // Control No. format: YYYYMMDD-001 (the server assigns the real one)
-  const nextRecordNo = (date) =>
-    date.replaceAll("-", "") + "-" + String(entries.filter((e) => e.date === date).length + 1).padStart(3, "0");
-
-  const startOut = (e) => {
-    setView("logbook"); setSelectedId(e.id); setOut(blankOut(e));
-    setTimeout(() => document.getElementById("details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  const refreshEntries = async () => {
+    if (!token) return;
+    setLoading(true);
+    try { setEntries(await api(token)); setError(""); }
+    catch (e) { onApiError(e); }
+    finally { setLoading(false); }
   };
+  const showToday = () => { setSearch(""); setFilterDate(today()); setView("logbook"); };
+  const clearFilters = () => { setSearch(""); setFilterDate(""); };
 
   const submit = async (ev) => {
     ev.preventDefault();
     if (form.services.length === 0) { setError("Please tick at least one reason for visit."); return; }
-    const body = { ...form, name: form.name.trim(), college: form.college.trim() };
+    const body = {
+      ...form,
+      name: form.name.trim(),
+      college: form.college.trim(),
+      recordNo: nextRecordNo(form.date),
+      timeOut: "", rating: 0, comments: "",
+    };
     setSaving(true);
     try {
       const saved = await api(token, "POST", body);
       setEntries((prev) => [saved, ...prev]);
       setSelectedId(saved.id);
-      setSearch(""); setFilterDate(""); setOnlyInside(false); setError("");
+      setSearch(""); setFilterDate(""); setError("");
       closeForm();
     } catch (e) { onApiError(e); }
     finally { setSaving(false); }
@@ -260,11 +285,23 @@ export default function App() {
 
   const submitOut = async (ev) => {
     ev.preventDefault();
-    if (Object.values(out.ratings).some((n) => !n)) { setError("Please rate every area you visited."); return; }
+    const selectedServices = selected?.services || [];
+    const currentRatings = out.serviceRatings || {};
+    if (selectedServices.some((service) => !Number(currentRatings[service]))) { setError("Please rate every selected service area before saving."); return; }
     setSaving(true);
     try {
-      const saved = await api(token, "PATCH", { serviceRatings: out.ratings, comments: out.comments.trim() }, out.id);
-      setEntries((prev) => prev.map((e) => (e.id === saved.id ? { ...e, ...saved } : e)));
+      const serviceRatings = out.serviceRatings || {};
+      const missingRatings = (selected?.services || []).filter((service) => !Number(serviceRatings[service]));
+      if (missingRatings.length) {
+        setError("Please rate every service area you selected: " + missingRatings.join(", ") + ".");
+        setSaving(false);
+        return;
+      }
+      const ratingValues = Object.values(serviceRatings).map(Number).filter((n) => n > 0);
+      const overallRating = ratingValues.length ? Number((ratingValues.reduce((sum, n) => sum + n, 0) / ratingValues.length).toFixed(2)) : 0;
+      const patch = { timeOut: out.timeOut, rating: overallRating, serviceRatings, comments: out.comments.trim() };
+      const saved = await api(token, "PATCH", patch, out.id);
+      setEntries((prev) => prev.map((e) => (e.id === saved.id ? { ...e, ...saved, rating: saved.rating ?? overallRating, serviceRatings: saved.serviceRatings || serviceRatings } : e)));
       setError(""); setOut(null);
     } catch (e) { onApiError(e); }
     finally { setSaving(false); }
@@ -272,62 +309,38 @@ export default function App() {
 
   const exportCsv = () => {
     const q = (v) => '"' + String(v ?? "").replaceAll('"', '""') + '"';
-    const cell = (e, k, t) => (t === "list" ? (e[k] || []).join("; ") : t === "ratings" ? show(e, k, t) : e[k]);
-    const rows = entries.map((e) => cols.map(([k, , t]) => cell(e, k, t)));
-    const csv = [cols.map(([k]) => q(k)).join(","), ...rows.map((r) => r.map(q).join(","))].join("\r\n");
+    const rows = entries.map((e) => FIELDS.map(([k, , t]) => (t === "list" ? (e[k] || []).join("; ") : t === "object" ? (e[k] && typeof e[k] === "object" ? Object.entries(e[k]).map(([name, rating]) => `${name}: ${rating}/5`).join("; ") : "") : e[k])));
+    const csv = [FIELDS.map(([k]) => q(k)).join(","), ...rows.map((r) => r.map(q).join(","))].join("\r\n");
     const url = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" }));
     const a = document.createElement("a");
     a.href = url; a.download = "ugnaylunas-entrance-logbook.csv"; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const navItems = [
-    ["logbook", "Logbook"], ["new", "New Entry"],
-    ...(isAdmin ? [["evals", "Evaluations"]] : []),
-    ["reports", "Reports / Export"], ["about", "About UgnayLunas"],
-  ];
+  const navItems = [["logbook", "Logbook"], ["new", "New Entry"], ["reports", "Reports / Export"], ["about", "About UgnayLunas"]];
 
-  // ---------------- Login page ----------------
   if (!token) {
     return (
-      <main className="lg">
+      <main className="wrap login-wrap" style={{ maxWidth: 560, textAlign: "center", marginTop: 54 }}>
+        <div className="login-card">
         <Styles />
-        <section className="lg-brand">
-          <div className="lg-seal"><div className="seal" aria-label="MSU–General Santos text mark"></div></div>
-          <h1>Mindanao State University–General Santos</h1>
-          <p className="lg-sub">University Infirmary</p>
-          <div className="lg-rule" />
-          <h3>Entrance Logbook</h3>
-          <p className="lg-tag">A simple, private record of every visit to the infirmary.</p>
-        </section>
-        <section className="lg-card">
-          <h2 className="shine-text">UgnayLunas</h2>
-          <p>Welcome. Sign in with your Google account to record your visit.</p>
-          {error && <div className="notice" role="alert" style={{ marginBottom: 18 }}>{error}</div>}
-          <div className="lg-google">
-            <GoogleLogin
-              size="large" shape="pill" text="continue_with"
-              onSuccess={(r) => { sessionStorage.setItem(TOKEN_KEY, r.credential); setError(""); setToken(r.credential); }}
-              onError={() => setError("Google sign-in failed. Please try again.")}
-            />
-          </div>
-          <button className="lg-link" onClick={() => setHelp((h) => !h)} aria-expanded={help}>
-            {help ? "Hide instructions" : "How does it work?"}
-          </button>
-          {help && (
-            <ol className="lg-steps">
-              <li>Sign in with your Google account.</li>
-              <li>Choose <b>+ New Entry</b>, fill in your details and tick the reason for your visit.</li>
-              <li>When you leave, press <b>Time Out &amp; Evaluate</b> and rate each area you visited.</li>
-            </ol>
-          )}
-          <p className="lg-note">Your entries can only be seen by your own account. Please do not write diagnoses or medical details in the logbook.</p>
-        </section>
+        <div className="seal" style={{ margin: "0 auto 16px" }}></div>
+        <h2 className="shine-text" style={{ color: "var(--purple)", fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 400, margin: 0 }}>UgnayLunas</h2>
+        <p className="muted">Sign in with a Google account to open the infirmary entrance logbook.</p>
+        {error && <div className="notice" role="alert">{error}</div>}
+        <p className="login-welcome">A calmer, clearer way to connect with the university infirmary.</p>
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 22 }}>
+          <GoogleLogin
+            onSuccess={(r) => { sessionStorage.setItem(TOKEN_KEY, r.credential); setError(""); setToken(r.credential); }}
+            onError={() => setError("Google sign-in failed. Please try again.")}
+          />
+        </div>
+        <div className="login-footnote">Secure sign-in · University Infirmary Logbook</div>
+        </div>
       </main>
     );
   }
 
-  // ---------------- Main app ----------------
   return (
     <>
       <Styles />
@@ -361,12 +374,14 @@ export default function App() {
         <section className="stats">
           <div className="stat"><span>Visits Today</span><strong>{todayCount}</strong></div>
           <div className="stat"><span>Currently Inside (no Time Out)</span><strong>{inside}</strong></div>
-          {isAdmin ? (
-            <div className="stat"><span>Overall Infirmary Rating (1–5)</span><strong>{areaStats.areasRated ? areaStats.overall.toFixed(2) : "–"}</strong></div>
-          ) : (
-            <div className="stat"><span>Completed Visits</span><strong>{completed}</strong></div>
-          )}
+          <div className="stat"><span>Overall Infirmary Rating (1–5)</span><strong>{avg}</strong></div>
         </section>
+        <div className="quick-actions">
+          <button type="button" onClick={refreshEntries} disabled={loading}>{loading ? "Refreshing…" : "↻ Refresh Data"}</button>
+          <button type="button" onClick={showToday}>Today’s Visits</button>
+          <button type="button" onClick={clearFilters}>Clear Filters</button>
+          <button type="button" onClick={() => window.print()}>Print Page</button>
+        </div>
 
         {view === "logbook" && (
           <section className="panel">
@@ -381,12 +396,8 @@ export default function App() {
             <div className="toolbar">
               <input className="search" type="search" placeholder="Search name, record no., college..." aria-label="Search logbook entries" value={search} onChange={(e) => setSearch(e.target.value)} />
               <label className="muted" htmlFor="filterDate">Date</label>
-              <input id="filterDate" type="date" style={{ width: "auto", minWidth: 160 }} value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
-              <button onClick={() => setFilterDate(today())}>Today</button>
-              <button className={onlyInside ? "active" : ""} onClick={() => setOnlyInside((v) => !v)} aria-pressed={onlyInside}>Inside only</button>
-              <button onClick={() => { setSearch(""); setFilterDate(""); setOnlyInside(false); }}>Clear</button>
-              <button onClick={load} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>
-              <button onClick={() => window.print()}>Print</button>
+              <input id="filterDate" type="date" style={{ width: "auto", minWidth: 145 }} value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
+              <button onClick={clearFilters}>Clear</button>
               <button className="primary" onClick={openForm}>+ New Entry</button>
             </div>
 
@@ -450,30 +461,20 @@ export default function App() {
             <div className="tablewrap">
               <table>
                 <thead>
-                  <tr>
-                    {cols.map(([k, label]) => <th key={k} scope="col">{label}</th>)}
-                    <th scope="col">Action</th>
-                  </tr>
+                  <tr>{FIELDS.map(([k, label]) => <th key={k} scope="col">{label}</th>)}</tr>
                 </thead>
                 <tbody>
                   {visible.map((e) => (
                     <tr key={e.id} className={e.id === selectedId ? "selected" : ""} onClick={() => setSelectedId(e.id)}>
-                      {cols.map(([k, , t]) => <td key={k}>{show(e, k, t)}</td>)}
-                      <td>
-                        {e.mine && !e.timeOut ? (
-                          <button className="primary" onClick={(ev) => { ev.stopPropagation(); startOut(e); }}>Time Out</button>
-                        ) : (
-                          <span className="muted">{e.timeOut ? "Done" : "—"}</span>
-                        )}
-                      </td>
+                      {FIELDS.map(([k, , t]) => <td key={k}>{show(e, k, t)}</td>)}
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {visible.length === 0 && <div className="empty">No entries match your search or filters.</div>}
+              {visible.length === 0 && <div className="empty">No entries match your search or date filter.</div>}
             </div>
 
-            <div className="details" id="details">
+            <div className="details">
               <h4>{selected ? "Selected Entry" : "Entry Details"}</h4>
               {selected ? (
                 <>
@@ -484,35 +485,37 @@ export default function App() {
                   <p>Reason for visit: {show(selected, "services", "list")}</p>
                   <span className={"badge " + (selected.timeOut ? "ok" : "pending")}>{selected.timeOut ? "Completed" : "Inside"}</span>
 
-                  {!selected.timeOut && selected.mine && !(out && out.id === selected.id) && (
-                    <div style={{ marginTop: 14 }}>
-                      <button className="primary" onClick={() => startOut(selected)}>Time Out &amp; Evaluate</button>
+                  {!selected.timeOut && !(out && out.id === selected.id) && (
+                    <div style={{ marginTop: 12 }}>
+                      <button className="primary" onClick={() => setOut(blankOut(selected.id, selected.services || []))}>Time Out &amp; Evaluate</button>
                     </div>
                   )}
 
                   {out && out.id === selected.id && (
-                    <form onSubmit={submitOut} style={{ marginTop: 16 }}>
+                    <form onSubmit={submitOut} style={{ marginTop: 14 }}>
                       <div className="grid">
                         <div className="field">
                           <label htmlFor="timeOut">Time Out (automatic)</label>
                           <input id="timeOut" type="text" readOnly value={out.timeOut} />
                         </div>
-                      </div>
-                      <h4 style={{ marginBottom: 4 }}>Rate each area you visited</h4>
-                      <p className="muted" style={{ marginTop: 0 }}>{RATINGS.map(([n, l]) => n + " = " + l).join(" · ")}</p>
-                      {Object.keys(out.ratings).map((area) => (
-                        <div className="rate-row" key={area} role="radiogroup" aria-label={"Rating for " + area}>
-                          <b>{area}</b>
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <label key={n} style={opt}>
-                              <input type="radio" name={"rate-" + area} style={{ width: "auto" }} checked={out.ratings[area] === n}
-                                onChange={() => setOut({ ...out, ratings: { ...out.ratings, [area]: n } })} />
-                              {n}
-                            </label>
+                        <div className="field full">
+                          <label>Evaluate each service area you selected</label>
+                          <p className="muted">Rate every selected service. The overall infirmary rating is calculated as the average of these ratings.</p>
+                          {(selected.services || []).map((service) => (
+                            <div className="service-rating" key={service}>
+                              <strong>{service}</strong>
+                              <div style={group} role="radiogroup" aria-label={`Rating for ${service}`}>
+                                {RATINGS.map(([n, label]) => (
+                                  <label key={n} style={opt}>
+                                    <input type="radio" name={`rating-${service}`} style={{ width: "auto" }} checked={Number(out.serviceRatings?.[service]) === n} onChange={() => setOut({ ...out, serviceRatings: { ...(out.serviceRatings || {}), [service]: n } })} />
+                                    {n} – {label}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
                           ))}
+                          <p className="rating-preview"><strong>Calculated overall rating: </strong>{(() => { const values = Object.values(out.serviceRatings || {}).map(Number).filter((n) => n > 0); return values.length ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2) + " / 5" : "Complete ratings above"; })()}</p>
                         </div>
-                      ))}
-                      <div className="grid" style={{ marginTop: 14 }}>
                         <div className="field full">
                           <label htmlFor="comments">Comments or suggestions (optional, type)</label>
                           <textarea id="comments" rows={3} maxLength={500} value={out.comments} onChange={(e) => setOut({ ...out, comments: e.target.value })} />
@@ -525,57 +528,17 @@ export default function App() {
                     </form>
                   )}
 
-                  {selected.timeOut && isAdmin && (
-                    <div style={{ marginTop: 12 }}>
-                      <p className="muted">Overall rating: {show(selected, "rating", "rating") || "None"}</p>
-                      <p className="muted">By area: {show(selected, "serviceRatings", "ratings") || "None"}</p>
-                      {selected.comments && <p className="muted">Comments: {selected.comments}</p>}
+                  {selected.timeOut && (
+                    <div className="saved-evaluation" style={{ marginTop: 10 }}>
+                      <p><strong>Overall infirmary rating:</strong> {show(selected, "rating", "rating") || "None"}</p>
+                      {selected.serviceRatings && <ul>{Object.entries(selected.serviceRatings).map(([service, rating]) => <li key={service}>{service}: {rating} / 5</li>)}</ul>}
+                      {selected.comments && <p><strong>Comments:</strong> {selected.comments}</p>}
                     </div>
-                  )}
-                  {selected.timeOut && !isAdmin && selected.evaluated && (
-                    <p className="muted" style={{ marginTop: 12 }}>Evaluation submitted. Thank you for your feedback!</p>
                   )}
                 </>
               ) : (
-                <div className="muted">Select a row to view details, or press Time Out to record your Time Out and evaluation.</div>
+                <div className="muted">Select a row to view details, or to record Time Out and evaluation.</div>
               )}
-            </div>
-          </section>
-        )}
-
-        {view === "evals" && isAdmin && (
-          <section className="panel report-panel">
-            <h3>Evaluations</h3>
-            <p className="muted">Only this administrator account can see ratings and comments. Each area's rating is the average of its patient ratings, and the overall infirmary rating is the average of all area ratings.</p>
-            <div className="eval-overall">
-              <span>Overall Infirmary Rating</span>
-              <strong>{areaStats.areasRated ? areaStats.overall.toFixed(2) : "–"}</strong>
-              <em>/ 5 · average of {areaStats.areasRated} rated area{areaStats.areasRated === 1 ? "" : "s"}</em>
-            </div>
-            <div>
-              {SERVICES.map((area) => {
-                const r = areaStats.byArea[area];
-                return (
-                  <div className="eval-row" key={area}>
-                    <span>{area}</span>
-                    <div className="bar"><i style={{ width: r ? (r.avg / 5) * 100 + "%" : "0%" }} /></div>
-                    <b>{r ? r.avg.toFixed(2) : "–"}</b>
-                    <small>{r ? r.count + " rating" + (r.count === 1 ? "" : "s") : "No ratings yet"}</small>
-                  </div>
-                );
-              })}
-            </div>
-            <h3 style={{ marginTop: 28 }}>Comments &amp; Suggestions</h3>
-            {reviews.length === 0 && <p className="muted">No comments yet.</p>}
-            {reviews.map((e) => (
-              <div className="eval-comment" key={e.id}>
-                {e.comments}
-                <small>{e.date} · {show(e, "code", "code")} · Overall {show(e, "rating", "rating")}</small>
-              </div>
-            ))}
-            <div style={{ marginTop: 16 }}>
-              <button onClick={load} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>{" "}
-              <button onClick={() => window.print()}>Print</button>
             </div>
           </section>
         )}
@@ -584,16 +547,15 @@ export default function App() {
           <section className="panel report-panel">
             <h3>Reports and Export</h3>
             <p>Download all loaded entries as a CSV spreadsheet. Open it in Excel or Google Sheets. Use fictional data only.</p>
-            <button className="primary" onClick={exportCsv}>Export Logbook to CSV</button>{" "}
-            <button onClick={() => window.print()}>Print Logbook</button>
+            <button className="primary" onClick={exportCsv}>Export Logbook to CSV</button>
           </section>
         )}
 
         {view === "about" && (
           <section className="panel report-panel">
             <h3>About UgnayLunas</h3>
-            <p>UgnayLunas is a proposed web-based entrance logbook for the university infirmary. Patients record their own visit: time in, time out, reason for visit, and a rating for each area of the infirmary they used.</p>
-            <p className="muted">Each account can only see its own entries, and the evaluations are visible only to the designated administrator account. This is an academic prototype, not an official MSU system. The text-based university heading is a placeholder and does not reproduce an official seal or wordmark.</p>
+            <p>UgnayLunas is a proposed web-based entrance logbook for the university infirmary. Patients record their own visit: time in, time out, reason for visit, and an evaluation of the service received.</p>
+            <p className="muted">This is an academic prototype, not an official MSU system. The text-based university heading is a placeholder and does not reproduce an official seal or wordmark.</p>
           </section>
         )}
       </main>
