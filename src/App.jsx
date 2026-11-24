@@ -2,62 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import "./App.css";
 
-const TOKEN_KEY = "nursynch_token";
-
-// Checklist of reasons for visit (CHECKBOXES, pick one or more)
-const SERVICES = [
-  "Physical Exam", "FTF Consultation", "Online Consultation", "Referral",
-  "Minor Procedure", "Dental", "Medical Certificate", "BP", "RBS", "Clearance",
-];
-// Code (RADIO, pick one)
-const CODES = { S: "Student", O: "Outsider" };
-// Patient evaluation (RADIO, pick one)
-const RATINGS = [[5, "Excellent"], [4, "Very Good"], [3, "Good"], [2, "Fair"], [1, "Poor"]];
-
-// [key, label, format]  format: text | list | code | rating
-const FIELDS = [
-  ["recordNo", "Record / Control No.", "text"],
-  ["date", "Date", "text"],
-  ["timeIn", "Time In", "text"],
-  ["timeOut", "Time Out", "text"],
-  ["code", "Code (S/O)", "code"],
-  ["name", "Name", "text"],
-  ["college", "College/Department", "text"],
-  ["services", "Reason for Visit", "list"],
-  ["rating", "Evaluation", "rating"],
-  ["comments", "Evaluation Comments", "text"],
-];
-
-const today = () =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-const nowTime = () =>
-  new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
-
-const blankForm = () => ({ date: today(), timeIn: nowTime(), code: "S", name: "", college: "", services: [] });
-const blankOut = (id) => ({ id, timeOut: nowTime(), rating: 0, comments: "" });
-
-const show = (e, k, type) => {
-  const v = e[k];
-  if (type === "list") return Array.isArray(v) ? v.join(", ") : v ?? "";
-  if (type === "code") return v ? v + " – " + (CODES[v] || "") : "";
-  if (type === "rating") return Number(v) ? v + " – " + ((RATINGS.find(([n]) => n === Number(v)) || [])[1] || "") : "";
-  return v ?? "";
-};
-
-async function api(token, method = "GET", body, id) {
-  const res = await fetch("/api/entries" + (id ? "?id=" + encodeURIComponent(id) : ""), {
-    method,
-    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const err = new Error(res.status === 403 ? "This Google account is not on the allowed list." : "Request failed.");
-    err.status = res.status;
-    throw err;
-  }
-  return res.json();
-}
-
 const group = { display: "flex", flexWrap: "wrap", gap: "8px 18px" };
 const opt = { display: "flex", alignItems: "center", gap: 6, fontWeight: 400 };
 
@@ -82,14 +26,17 @@ button.primary::after,.stat::after{content:"";position:absolute;top:0;left:-60%;
   color:transparent !important;-webkit-text-fill-color:transparent;animation:text-shine 4s linear infinite}
 @keyframes text-shine{0%{background-position:150% 0}100%{background-position:-150% 0}}
 
-/* formal okir background: repeating okir scroll pattern, soft maroon header wash, okir medallion in the corner */
+/* clean, minimal background with only a few subtle gold glitters */
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:
-    url("${OKIR_TILE}") 0 0/270px 220px repeat,
-    linear-gradient(180deg,rgba(107,15,90,.06),transparent 260px),
-    linear-gradient(135deg,#fbfafc,#f0ecf4)}
-body::after{content:"";position:fixed;right:-110px;bottom:-110px;width:520px;height:520px;z-index:-1;pointer-events:none;opacity:.10;
-  background:url("${OKIR_MEDALLION}") center/contain no-repeat}
+  background:linear-gradient(180deg,rgba(107,15,90,.035),transparent 260px),
+    linear-gradient(135deg,#fbfafc,#f4f0f7)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:
+    radial-gradient(circle at 12% 18%,rgba(245,166,35,.75) 0 1.4px,transparent 2px),
+    radial-gradient(circle at 87% 24%,rgba(245,166,35,.55) 0 1px,transparent 1.8px),
+    radial-gradient(circle at 76% 78%,rgba(245,166,35,.65) 0 1.3px,transparent 2px),
+    radial-gradient(circle at 23% 86%,rgba(245,166,35,.5) 0 1px,transparent 1.8px);
+  opacity:.65}
 
 /* glowing logo and title */
 .seal{animation:seal-glow 3s ease-in-out infinite}
