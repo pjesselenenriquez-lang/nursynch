@@ -189,7 +189,34 @@ th,td{padding:12px 14px}
 .login-card .login-welcome{padding:10px 14px;border-radius:14px;background:linear-gradient(100deg,rgba(176,79,208,.055),rgba(245,190,63,.09),rgba(176,79,208,.055));border:1px solid rgba(107,15,90,.06)}
 .login-card [role="button"],.login-card iframe{border-radius:12px}
 .login-card button{box-shadow:0 4px 16px rgba(107,15,90,.08)}
-@media (prefers-reduced-motion:reduce){.login-wrap:before,.login-wrap:after,.login-card .seal,.login-card .seal:after,.login-card h2{animation:none!important}}
+
+.login-wrap{min-height:82vh}
+.login-card{width:min(100%,680px);padding:44px clamp(22px,5vw,52px) 34px;background:radial-gradient(ellipse at 50% 0%,rgba(255,248,222,.65),transparent 45%),linear-gradient(145deg,rgba(255,255,255,.98),rgba(250,246,252,.97))}
+.login-card:before{height:8px;background-size:220% 100%;animation:gold-flow 4s linear infinite}
+.login-tagline{font-family:'EB Garamond',Georgia,serif;font-size:clamp(1.35rem,3vw,1.85rem);font-weight:600;line-height:1.25;color:#6b0f5a;margin:10px 0 8px;text-wrap:balance;text-shadow:0 0 14px rgba(190,126,230,.16)}
+.login-instruction{max-width:470px;margin:0 auto!important;line-height:1.65}
+.login-welcome{max-width:500px!important;margin:20px auto 18px!important;padding:13px 18px!important;border-radius:15px;background:linear-gradient(100deg,rgba(176,79,208,.07),rgba(245,190,63,.13),rgba(176,79,208,.07));border:1px solid rgba(107,15,90,.1);line-height:1.55}
+.login-feature-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:22px 0 24px}
+.login-feature{display:flex;flex-direction:column;align-items:center;gap:5px;padding:15px 9px;border-radius:16px;border:1px solid rgba(107,15,90,.1);background:rgba(255,255,255,.7);box-shadow:0 6px 18px rgba(107,15,90,.045);transition:transform .25s,box-shadow .25s,border-color .25s}
+.login-feature:hover{transform:translateY(-3px);border-color:rgba(245,166,35,.45);box-shadow:0 8px 24px rgba(107,15,90,.1),0 0 16px rgba(245,190,63,.12)}
+.login-feature .feature-symbol{font-size:1.6rem;color:#b88716;text-shadow:0 0 12px rgba(245,190,63,.6)}
+.login-feature strong{font-size:.98rem;color:#5f1455}
+.login-feature small{font-size:.82rem;line-height:1.35;color:#776a7a}
+.login-footnote{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px;font-size:.86rem!important;margin-top:24px!important}
+.login-footnote span{font-size:.7rem;color:#3d9b69;text-shadow:0 0 8px rgba(61,155,105,.4)}
+.login-footnote i{font-style:normal;color:#c49a30}
+.login-disclaimer{margin-top:9px;font-size:.76rem;color:#948899;letter-spacing:.02em}
+.service-rating-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0}
+.service-average-card{padding:18px;border:1px solid rgba(107,15,90,.12);border-radius:16px;background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(250,246,252,.92));box-shadow:0 5px 18px rgba(107,15,90,.05)}
+.service-average-card .service-name{font-weight:700;color:#5f1455;margin-bottom:8px}
+.service-average-card .service-score{font-size:1.8rem;font-weight:700;color:#6b0f5a;line-height:1.2}
+.service-average-card .service-count{font-size:.88rem;color:#786c7b;margin-top:5px}
+.service-meter{height:8px;background:rgba(107,15,90,.09);border-radius:99px;overflow:hidden;margin-top:12px}
+.service-meter span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#6b0f5a,#b77ad4,#e7bf50)}
+.service-rating-overview{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:18px 20px;border-radius:16px;background:linear-gradient(110deg,rgba(107,15,90,.07),rgba(245,190,63,.13));border:1px solid rgba(107,15,90,.1)}
+.service-rating-overview strong{font-size:1.8rem;color:#6b0f5a}
+@media(max-width:600px){.login-feature-row{grid-template-columns:1fr;gap:8px}.login-feature{display:grid;grid-template-columns:34px 1fr;text-align:left;justify-items:start;padding:11px 14px}.login-feature .feature-symbol{grid-row:span 2}.login-feature small{font-size:.8rem}.login-card{padding:34px 20px 26px}}
+@media (prefers-reduced-motion:reduce){.login-wrap:before,.login-wrap:after,.login-card .seal,.login-card .seal:after,.login-card h2,.login-card:before,.login-feature{animation:none!important;transition:none!important}}
 @media(max-width:600px){.login-card{padding:34px 20px;border-radius:22px}.quick-actions button{flex:1 1 42%}}
 @media print{.top nav,.toolbar,.quick-actions,.actions,button{display:none!important}body::before,body::after{display:none!important}}
 }`;
@@ -241,6 +268,22 @@ export default function App() {
   const inside = entries.filter((e) => !e.timeOut).length;
   const rated = entries.filter((e) => Number(e.rating) > 0);
   const avg = rated.length ? (rated.reduce((s, e) => s + Number(e.rating), 0) / rated.length).toFixed(1) : "–";
+  // Service-level averages are calculated from every saved, nonzero rating for that service.
+  const serviceRatingSummary = SERVICES.map((service) => {
+    const values = entries
+      .map((entry) => Number(entry.serviceRatings?.[service]))
+      .filter((rating) => Number.isFinite(rating) && rating > 0);
+    return {
+      service,
+      count: values.length,
+      average: values.length ? values.reduce((sum, rating) => sum + rating, 0) / values.length : null,
+    };
+  });
+  const allServiceRatings = serviceRatingSummary.filter((item) => item.average !== null);
+  const overallServiceAverage = allServiceRatings.length
+    ? entries.reduce((sum, entry) => sum + Object.values(entry.serviceRatings || {}).map(Number).filter((n) => Number.isFinite(n) && n > 0).reduce((a, b) => a + b, 0), 0) /
+      entries.reduce((sum, entry) => sum + Object.values(entry.serviceRatings || {}).map(Number).filter((n) => Number.isFinite(n) && n > 0).length, 0)
+    : null;
 
   // Control No. format: YYYYMMDD-001 (counts per date). Ideally assigned by the server.
   const nextRecordNo = (date) =>
@@ -317,25 +360,32 @@ export default function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const navItems = [["logbook", "Logbook"], ["new", "New Entry"], ["reports", "Reports / Export"], ["about", "About UgnayLunas"]];
+  const navItems = [["logbook", "Logbook"], ["new", "New Entry"], ["service-ratings", "Service Ratings"], ["reports", "Reports / Export"], ["about", "About UgnayLunas"]];
 
   if (!token) {
     return (
-      <main className="wrap login-wrap" style={{ maxWidth: 560, textAlign: "center", marginTop: 54 }}>
+      <main className="wrap login-wrap" style={{ maxWidth: 760, textAlign: "center", marginTop: 28 }}>
         <div className="login-card">
         <Styles />
         <div className="seal" style={{ margin: "0 auto 16px" }}></div>
         <h2 className="shine-text" style={{ color: "var(--purple)", fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 400, margin: 0 }}>UgnayLunas</h2>
-        <p className="muted">Sign in with a Google account to open the infirmary entrance logbook.</p>
+        <p className="login-tagline">Welcome to the Infirmary Patient Logbook</p>
+        <p className="muted login-instruction">Sign in securely with your authorized Google account to access patient visit records and service evaluations.</p>
         {error && <div className="notice" role="alert">{error}</div>}
-        <p className="login-welcome">A calmer, clearer way to connect with the university infirmary.</p>
+        <div className="login-welcome">A welcoming, organized space for recording infirmary visits and improving patient care.</div>
+        <div className="login-feature-row" aria-label="Logbook features">
+          <div className="login-feature"><span className="feature-symbol">✧</span><strong>Visit Records</strong><small>Clear, organized entries</small></div>
+          <div className="login-feature"><span className="feature-symbol">♡</span><strong>Patient Feedback</strong><small>Rate each service area</small></div>
+          <div className="login-feature"><span className="feature-symbol">✦</span><strong>Care Improvement</strong><small>Insights from ratings</small></div>
+        </div>
         <div style={{ display: "flex", justifyContent: "center", marginTop: 22 }}>
           <GoogleLogin
             onSuccess={(r) => { sessionStorage.setItem(TOKEN_KEY, r.credential); setError(""); setToken(r.credential); }}
             onError={() => setError("Google sign-in failed. Please try again.")}
           />
         </div>
-        <div className="login-footnote">Secure sign-in · University Infirmary Logbook</div>
+        <div className="login-footnote"><span>●</span> Secure Google sign-in <i>•</i> MSU–General Santos University Infirmary</div>
+        <div className="login-disclaimer">UgnayLunas · Academic prototype for infirmary logbook management</div>
         </div>
       </main>
     );
@@ -540,6 +590,31 @@ export default function App() {
                 <div className="muted">Select a row to view details, or to record Time Out and evaluation.</div>
               )}
             </div>
+          </section>
+        )}
+
+        {view === "service-ratings" && (
+          <section className="panel report-panel">
+            <h3>Infirmary Service Ratings</h3>
+            <p className="muted">Each service area is averaged from its saved patient ratings. Only submitted ratings are included; unrated services are not treated as zero.</p>
+            <div className="service-rating-overview">
+              <div><div className="muted">Overall average across all rated service areas</div><strong>{overallServiceAverage === null ? "–" : overallServiceAverage.toFixed(2) + " / 5"}</strong></div>
+              <div><div className="muted">Service areas with ratings</div><strong>{allServiceRatings.length} <span style={{ fontSize: ".95rem", fontWeight: 500 }}>of {SERVICES.length}</span></strong></div>
+              <div><div className="muted">Completed evaluations</div><strong>{entries.filter((entry) => entry.serviceRatings && Object.values(entry.serviceRatings).some((n) => Number(n) > 0)).length}</strong></div>
+            </div>
+            <div className="service-rating-summary">
+              {serviceRatingSummary.map(({ service, count, average }) => (
+                <article className="service-average-card" key={service}>
+                  <div className="service-name">{service}</div>
+                  <div className="service-score">{average === null ? "–" : average.toFixed(2)} <span style={{ fontSize: ".9rem", fontWeight: 500 }}>/ 5</span></div>
+                  <div className="service-count">{count} {count === 1 ? "rating" : "ratings"}</div>
+                  <div className="service-meter" aria-label={average === null ? "No ratings yet" : `Average rating ${average.toFixed(2)} out of 5`}>
+                    <span style={{ width: `${average === null ? 0 : Math.max(0, Math.min(100, average / 5 * 100))}%` }} />
+                  </div>
+                </article>
+              ))}
+            </div>
+            <p className="muted">Ratings are calculated from the serviceRatings saved on each visit. If this page has no ratings yet, complete a patient's “Time Out & Evaluate” form after rating every service they selected.</p>
           </section>
         )}
 
