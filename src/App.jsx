@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import "./App.css";
 
-// ---------- Minimal Okir-inspired background art ----------
-// A light, low-contrast scroll motif keeps the interface calm and readable.
-const OKIR_TILE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%237b4b43' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' opacity='.22'%3E%3Cpath d='M-8 90 C18 90 20 62 42 62 C57 62 61 78 50 86 C40 94 29 84 35 76 C39 71 46 75 43 80'/%3E%3Cpath d='M188 90 C162 90 160 118 138 118 C123 118 119 102 130 94 C140 86 151 96 145 104 C141 109 134 105 137 100'/%3E%3Cpath d='M90 -8 C90 18 62 20 62 42 C62 57 78 61 86 50 C94 40 84 29 76 35 C71 39 75 46 80 43'/%3E%3Cpath d='M90 188 C90 162 118 160 118 138 C118 123 102 119 94 130 C86 140 96 151 104 145 C109 141 105 134 100 137'/%3E%3Cpath d='M24 24 C43 31 48 43 45 53 C35 48 27 40 24 24Z M27 28 L43 49'/%3E%3Cpath d='M156 156 C137 149 132 137 135 127 C145 132 153 140 156 156Z M153 152 L137 131'/%3E%3Ccircle cx='90' cy='90' r='15'/%3E%3Cpath d='M90 79 C96 84 96 96 90 101 C84 96 84 84 90 79Z M79 90 C84 84 96 84 101 90 C96 96 84 96 79 90Z'/%3E%3C/g%3E%3C/svg%3E";
+// ---------- Minimal MSU–General Santos-inspired Okir background ----------
+// Abstract navy-and-gold linework; decorative only, not an official university seal.
+const OKIR_TILE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%230d3152' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round' opacity='.10'%3E%3Cpath d='M0 120 H34 C50 120 52 101 68 101 C80 101 84 113 76 120 C68 127 60 119 65 114'/%3E%3Cpath d='M240 120 H206 C190 120 188 139 172 139 C160 139 156 127 164 120 C172 113 180 121 175 126'/%3E%3Cpath d='M120 0 V34 C120 50 139 52 139 68 C139 80 127 84 120 76 C113 68 121 60 126 65'/%3E%3Cpath d='M120 240 V206 C120 190 101 188 101 172 C101 160 113 156 120 164 C127 172 119 180 114 175'/%3E%3Ccircle cx='120' cy='120' r='22' stroke='%23b58a42' stroke-width='1.3'/%3E%3Ccircle cx='120' cy='120' r='14' stroke='%23b58a42'/%3E%3Cpath d='M120 101 V109 M120 131 V139 M101 120 H109 M131 120 H139 M107 107 L113 113 M127 127 L133 133 M133 107 L127 113 M113 127 L107 133' stroke='%23b58a42'/%3E%3Cpath d='M42 42 C58 44 67 53 69 68 C54 66 45 57 42 42Z M48 48 L64 64'/%3E%3Cpath d='M198 198 C182 196 173 187 171 172 C186 174 195 183 198 198Z M192 192 L176 176'/%3E%3C/g%3E%3C/svg%3E";
 const OKIR_MEDALLION = OKIR_TILE;
 
 const TOKEN_KEY = "nursynch_token";
@@ -66,31 +66,12 @@ async function api(token, method = "GET", body, id) {
 const group = { display: "flex", flexWrap: "wrap", gap: "8px 18px" };
 const opt = { display: "flex", alignItems: "center", gap: 6, fontWeight: 400 };
 
-// ---------- Minimal, accessible styling ----------
+// ---------- Background-only styling ----------
+// Keep the existing App.css and all previous component styling intact.
 const GLITTER_CSS = `
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:url("${OKIR_TILE}") 0 0/180px 180px repeat,
+  background:url("${OKIR_TILE}") 0 0/240px 240px repeat,
   linear-gradient(135deg,#fcfaf6,#f6f1e8)}
-body::after{content:none}
-.top .accent{background:#9b7358;height:2px;opacity:.8}
-.shine-text{color:var(--purple);filter:none;text-shadow:none}
-.seal{filter:none;animation:none}
-input:focus,select:focus,textarea:focus{outline:none;border-color:#9b7358;box-shadow:0 0 0 2px rgba(155,115,88,.14)}
-input,select,textarea,button{transition:border-color .18s,background-color .18s,transform .18s}
-button:hover:not(:disabled){transform:translateY(-1px)}
-button.primary{animation:none}
-button.primary::after,.stat::after{content:none}
-button.primary:hover:not(:disabled){box-shadow:0 2px 8px rgba(65,42,31,.12)}
-button:disabled{animation:none;box-shadow:none}
-.nav button.active{box-shadow:none}
-.stat,.panel,.formarea,.notice{animation:none}
-.stat{transition:transform .18s,box-shadow .18s}
-.stat:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(65,42,31,.08)}
-tbody tr{transition:background .18s}
-tbody tr:hover{background:rgba(155,115,88,.08);box-shadow:inset 2px 0 0 #9b7358}
-tbody tr.selected{background:rgba(155,115,88,.12);box-shadow:inset 2px 0 0 #795548}
-.badge.ok,.badge.pending{animation:none}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 `;
 function Styles() {
   return <style>{GLITTER_CSS}</style>;
