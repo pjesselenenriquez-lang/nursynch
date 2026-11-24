@@ -47,14 +47,26 @@ const fromRow = (r) => {
   return o;
 };
 
+// Current date and time in Manila, from the server clock
+function manilaNow() {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).formatToParts(new Date()).map((x) => [x.type, x.value])
+  );
+  return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}` };
+}
+
 // New entry (Time In)
 function cleanNew(body = {}) {
   const services = Array.isArray(body.services)
     ? [...new Set(body.services.filter((s) => SERVICES.includes(s)))]
     : [];
+  const now = manilaNow();
   const e = {
-    date: /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : null,
-    timeIn: TIME.test(body.timeIn) ? body.timeIn : null,
+    date: now.date, // set by the server, cannot be edited by the patient
+    timeIn: now.time,
     timeOut: "",
     code: CODES.includes(body.code) ? body.code : null,
     name: String(body.name || "").trim().slice(0, 120),
@@ -70,8 +82,8 @@ function cleanNew(body = {}) {
 // Time Out + evaluation
 function cleanOut(body = {}) {
   const rating = Number(body.rating);
-  if (!TIME.test(body.timeOut) || !Number.isInteger(rating) || rating < 1 || rating > 5) return null;
-  return { timeOut: body.timeOut, rating: String(rating), comments: String(body.comments || "").trim().slice(0, 500) };
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return null;
+  return { timeOut: manilaNow().time, rating: String(rating), comments: String(body.comments || "").trim().slice(0, 500) };
 }
 
 async function readRows() {
