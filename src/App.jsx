@@ -614,7 +614,43 @@ export default function App() {
                 </article>
               ))}
             </div>
-            <p className="muted">Ratings are calculated from the serviceRatings saved on each visit. If this page has no ratings yet, complete a patient's “Time Out & Evaluate” form after rating every service they selected.</p>
+            <h4 style={{ marginTop: 24 }}>Ratings Recorded in Entries</h4>
+            <p className="muted">This list is taken directly from the saved logbook entries. All scores are shown out of 5; the average for each service above uses only entries that include a rating for that service.</p>
+            <div className="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Record No.</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Services Rated</th>
+                    <th scope="col">Entry Average</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries
+                    .filter((entry) => Number(entry.rating) > 0 || (entry.serviceRatings && Object.values(entry.serviceRatings).some((n) => Number(n) > 0)))
+                    .sort((a, b) => (b.date + " " + b.timeIn).localeCompare(a.date + " " + a.timeIn))
+                    .map((entry) => {
+                      const ratings = Object.entries(entry.serviceRatings || {}).filter(([, n]) => Number(n) > 0);
+                      const entryAverage = ratings.length
+                        ? ratings.reduce((sum, [, n]) => sum + Number(n), 0) / ratings.length
+                        : Number(entry.rating);
+                      return (
+                        <tr key={entry.id}>
+                          <td>{entry.recordNo || "—"}</td>
+                          <td>{entry.date || "—"}</td>
+                          <td>{ratings.length ? ratings.map(([service, rating]) => `${service}: ${Number(rating)}/5`).join(" · ") : "Overall rating only"}</td>
+                          <td><strong>{entryAverage.toFixed(2)} / 5</strong></td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+              {!entries.some((entry) => Number(entry.rating) > 0 || (entry.serviceRatings && Object.values(entry.serviceRatings).some((n) => Number(n) > 0))) && (
+                <div className="empty">No ratings have been submitted in the entries yet.</div>
+              )}
+            </div>
+            <p className="muted">If a saved entry has no rating here, complete that patient's “Time Out & Evaluate” form and save the evaluation. The backend must save and return the <code>serviceRatings</code> field for service-level averages to remain available after reloading.</p>
           </section>
         )}
 
