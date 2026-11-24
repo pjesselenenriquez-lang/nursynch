@@ -10,7 +10,7 @@ const SERVICES = [
   "Minor Procedure", "Dental", "Medical Certificate", "BP", "RBS", "Clearance",
 ];
 // Code (RADIO, pick one)
-const CODES = { S: "Student", O: "Outsider", D: "Dependent", E: "Employee" };
+const CODES = { S: "Student", O: "Outsider" };
 // Patient evaluation (RADIO, pick one)
 const RATINGS = [[5, "Excellent"], [4, "Very Good"], [3, "Good"], [2, "Fair"], [1, "Poor"]];
 
@@ -20,7 +20,7 @@ const FIELDS = [
   ["date", "Date", "text"],
   ["timeIn", "Time In", "text"],
   ["timeOut", "Time Out", "text"],
-  ["code", "Code (S/O/D/E)", "code"],
+  ["code", "Code (S/O)", "code"],
   ["name", "Name", "text"],
   ["college", "College/Department", "text"],
   ["services", "Reason for Visit", "list"],
@@ -244,12 +244,12 @@ export default function App() {
                       <input id="recordNo" readOnly value={nextRecordNo(form.date)} />
                     </div>
                     <div className="field">
-                      <label htmlFor="date">Date</label>
-                      <input id="date" type="date" required value={form.date} onChange={(e) => setField("date", e.target.value)} />
+                      <label htmlFor="date">Date (automatic)</label>
+                      <input id="date" type="text" readOnly value={form.date} />
                     </div>
                     <div className="field">
-                      <label htmlFor="timeIn">Time In</label>
-                      <input id="timeIn" type="time" required value={form.timeIn} onChange={(e) => setField("timeIn", e.target.value)} />
+                      <label htmlFor="timeIn">Time In (automatic)</label>
+                      <input id="timeIn" type="text" readOnly value={form.timeIn} />
                     </div>
                     <div className="field">
                       <label id="codeLabel">Code (choose one)</label>
@@ -327,8 +327,8 @@ export default function App() {
                     <form onSubmit={submitOut} style={{ marginTop: 14 }}>
                       <div className="grid">
                         <div className="field">
-                          <label htmlFor="timeOut">Time Out</label>
-                          <input id="timeOut" type="time" required value={out.timeOut} onChange={(e) => setOut({ ...out, timeOut: e.target.value })} />
+                          <label htmlFor="timeOut">Time Out (automatic)</label>
+                          <input id="timeOut" type="text" readOnly value={out.timeOut} />
                         </div>
                         <div className="field full">
                           <label id="rateLabel">Patient Evaluation: How was the service you received? (choose one)</label>
