@@ -20,7 +20,7 @@ const FIELDS = [
   ["date", "Date", "text"],
   ["timeIn", "Time In", "text"],
   ["timeOut", "Time Out", "text"],
-  ["code", "Code (S/O/D/E), "code"],
+  ["code", "Code (S/O/D/E)", "code"],
   ["name", "Name", "text"],
   ["college", "College/Department", "text"],
   ["services", "Reason for Visit", "list"],
