@@ -92,10 +92,57 @@ button.primary::after,.stat::after{content:"";position:absolute;top:0;left:-60%;
   color:transparent !important;-webkit-text-fill-color:transparent;animation:text-shine 4s linear infinite}
 @keyframes text-shine{0%{background-position:150% 0}100%{background-position:-150% 0}}
 
+/* soft colored aura drifting slowly behind the whole page */
+body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;
+  background:radial-gradient(circle at 20% 30%,rgba(197,139,255,.22),transparent 40%),
+             radial-gradient(circle at 80% 20%,rgba(255,213,74,.20),transparent 40%),
+             radial-gradient(circle at 60% 85%,rgba(255,158,216,.18),transparent 45%);
+  animation:aura 18s ease-in-out infinite alternate}
+@keyframes aura{from{transform:translate(0,0) scale(1)}to{transform:translate(4%,3%) scale(1.12)}}
+
+/* glowing logo and title */
+.seal{animation:seal-glow 3s ease-in-out infinite}
+@keyframes seal-glow{0%,100%{filter:drop-shadow(0 0 3px rgba(245,166,35,.45))}50%{filter:drop-shadow(0 0 14px rgba(245,166,35,.95))}}
+.shine-text{filter:drop-shadow(0 0 6px rgba(224,168,0,.35))}
+
+/* form fields light up when you click into them */
+input:focus,select:focus,textarea:focus{outline:none;border-color:#b04fd0;
+  box-shadow:0 0 0 3px rgba(176,79,208,.2),0 0 14px rgba(176,79,208,.45)}
+input,select,textarea{transition:box-shadow .25s,border-color .25s}
+
+/* buttons glow on hover; the main buttons also pulse softly */
+button{transition:box-shadow .25s,transform .2s}
+button:hover:not(:disabled){box-shadow:0 0 14px rgba(176,79,208,.5);transform:translateY(-1px)}
+button.primary{animation:pulse-glow 2.6s ease-in-out infinite}
+button.primary:hover:not(:disabled){animation:none;box-shadow:0 0 20px rgba(255,200,60,.9),0 0 6px rgba(107,15,90,.6)}
+button:disabled{animation:none;box-shadow:none}
+.nav button.active{box-shadow:0 0 12px rgba(245,166,35,.45)}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 rgba(255,200,60,0)}50%{box-shadow:0 0 16px rgba(255,200,60,.65)}}
+
+/* cards and panels float in, and lift with a glow on hover */
+.stat,.panel,.formarea,.notice{animation:rise-in .6s ease both}
+.stat:nth-child(2){animation-delay:.1s}
+.stat:nth-child(3){animation-delay:.2s}
+.stat{transition:box-shadow .3s,transform .3s}
+.stat:hover{transform:translateY(-3px);box-shadow:0 6px 22px rgba(107,15,90,.28),0 0 18px rgba(255,213,74,.35)}
+@keyframes rise-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* table rows glow when pointed at or selected */
+tbody tr{transition:background .2s,box-shadow .2s}
+tbody tr:hover{background:rgba(255,213,74,.14);box-shadow:inset 3px 0 0 #f5a623}
+tbody tr.selected{background:linear-gradient(90deg,rgba(255,213,74,.28),rgba(197,139,255,.18));box-shadow:inset 3px 0 0 #6b0f5a}
+
+/* status badges glow: green = completed, amber = still inside */
+.badge.ok{animation:glow-green 2.6s ease-in-out infinite}
+.badge.pending{animation:glow-amber 1.8s ease-in-out infinite}
+@keyframes glow-green{0%,100%{box-shadow:0 0 0 rgba(46,160,67,0)}50%{box-shadow:0 0 12px rgba(46,160,67,.7)}}
+@keyframes glow-amber{0%,100%{box-shadow:0 0 0 rgba(245,166,35,0)}50%{box-shadow:0 0 14px rgba(245,166,35,.85)}}
+
 /* people who turn off animations in their device settings get a still page */
 @media (prefers-reduced-motion:reduce){
   .glitter-layer{display:none}
-  .shine-text,.top .accent,button.primary::after,.stat::after{animation:none}
+  .shine-text,.top .accent,button.primary::after,.stat::after,
+  body::before,.seal,button.primary,.badge,.stat,.panel,.formarea,.notice{animation:none}
 }`;
 const GLITTER_COLORS = ["#ffd54a", "#ffffff", "#ff9ed8", "#c58bff", "#ffb347"];
 
