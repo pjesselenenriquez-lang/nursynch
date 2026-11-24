@@ -61,6 +61,79 @@ async function api(token, method = "GET", body, id) {
 const group = { display: "flex", flexWrap: "wrap", gap: "8px 18px" };
 const opt = { display: "flex", alignItems: "center", gap: 6, fontWeight: 400 };
 
+// ---------- Glitter and shine effects (pure CSS animation, no image files needed) ----------
+const GLITTER_CSS = `
+.glitter-layer{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:50}
+.glitter{position:absolute;bottom:-24px;border-radius:50%;opacity:0;
+  background:radial-gradient(circle,#fff 0 25%,var(--c) 60%,transparent 72%);
+  box-shadow:0 0 8px var(--c);
+  animation:glitter-rise 12s linear infinite,glitter-twinkle 2s ease-in-out infinite}
+.glitter.star{border-radius:0;box-shadow:none;background:var(--c);
+  clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%)}
+@keyframes glitter-rise{0%{transform:translate(0,0) rotate(0)}100%{transform:translate(var(--x),-110vh) rotate(360deg)}}
+@keyframes glitter-twinkle{0%,100%{opacity:0}20%{opacity:1}50%{opacity:.35}80%{opacity:1}}
+
+/* gold bar flowing under the university name */
+.top .accent{background-image:linear-gradient(90deg,#f5a623,#fff3b0,#f5a623,#ffd66b,#f5a623);
+  background-size:200% 100%;animation:gold-flow 3s linear infinite}
+@keyframes gold-flow{to{background-position:-200% 0}}
+
+/* shiny sweep across buttons and stat cards */
+button.primary,.stat{position:relative;overflow:hidden}
+button.primary::after,.stat::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);
+  transform:skewX(-20deg);animation:sheen 3.5s ease-in-out infinite}
+.stat::after{background:linear-gradient(100deg,transparent,rgba(255,215,100,.35),transparent);animation-duration:5s}
+@keyframes sheen{0%{left:-60%}60%,100%{left:130%}}
+
+/* shimmering gold highlight moving across the "UgnayLunas" title */
+.shine-text{background:linear-gradient(100deg,#6b0f5a 0%,#6b0f5a 40%,#e0a800 50%,#6b0f5a 60%,#6b0f5a 100%);
+  background-size:250% 100%;-webkit-background-clip:text;background-clip:text;
+  color:transparent !important;-webkit-text-fill-color:transparent;animation:text-shine 4s linear infinite}
+@keyframes text-shine{0%{background-position:150% 0}100%{background-position:-150% 0}}
+
+/* people who turn off animations in their device settings get a still page */
+@media (prefers-reduced-motion:reduce){
+  .glitter-layer{display:none}
+  .shine-text,.top .accent,button.primary::after,.stat::after{animation:none}
+}`;
+const GLITTER_COLORS = ["#ffd54a", "#ffffff", "#ff9ed8", "#c58bff", "#ffb347"];
+
+function Glitter({ count = 36 }) {
+  const bits = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        left: Math.random() * 100,
+        size: 4 + Math.random() * 9,
+        rise: 9 + Math.random() * 10,
+        twinkle: 1.5 + Math.random() * 2.5,
+        delay: -Math.random() * 18, // negative = already mid-flight when the page loads
+        x: Math.random() * 160 - 80 + "px",
+        color: GLITTER_COLORS[i % GLITTER_COLORS.length],
+        star: i % 3 === 0,
+      })),
+    [count]
+  );
+  return (
+    <>
+      <style>{GLITTER_CSS}</style>
+      <div className="glitter-layer" aria-hidden="true">
+        {bits.map((b, i) => (
+          <span
+            key={i}
+            className={"glitter" + (b.star ? " star" : "")}
+            style={{
+              left: b.left + "%", width: b.size, height: b.size, "--c": b.color, "--x": b.x,
+              animationDuration: `${b.rise}s, ${b.twinkle}s`,
+              animationDelay: `${b.delay}s, ${b.delay}s`,
+            }}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
 export default function App() {
   const [view, setView] = useState("logbook");
   const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY));
@@ -166,8 +239,9 @@ export default function App() {
   if (!token) {
     return (
       <main className="wrap" style={{ maxWidth: 480, textAlign: "center", marginTop: 80 }}>
+        <Glitter />
         <div className="seal" style={{ margin: "0 auto 16px" }}></div>
-        <h2 style={{ color: "var(--purple)", fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 400, margin: 0 }}>UgnayLunas</h2>
+        <h2 className="shine-text" style={{ color: "var(--purple)", fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 400, margin: 0 }}>UgnayLunas</h2>
         <p className="muted">Sign in with a Google account to open the infirmary entrance logbook.</p>
         {error && <div className="notice" role="alert">{error}</div>}
         <div style={{ display: "flex", justifyContent: "center" }}>
@@ -182,6 +256,7 @@ export default function App() {
 
   return (
     <>
+      <Glitter />
       <header className="top">
         <div className="brand">
           <div className="seal" aria-label="MSU–General Santos text mark"></div>
@@ -203,7 +278,7 @@ export default function App() {
 
       <main className="wrap">
         <section className="heading">
-          <div><h2>UgnayLunas</h2><div className="muted">Infirmary Entrance Logbook</div></div>
+          <div><h2 className="shine-text">UgnayLunas</h2><div className="muted">Infirmary Entrance Logbook</div></div>
         </section>
 
         {error && <div className="notice" role="alert">{error}</div>}
