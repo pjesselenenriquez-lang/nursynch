@@ -1,14 +1,16 @@
 import { OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
 
-const COLS = ["id","date","shift","physicalExam","ftf","online","admissions","referral","death",
-  "minorProcedure","dental","medicalCertificate","bp","rbs","clearance","totalPatients",
-  "grandTotal","nod","status","notes"];
-const NUMERIC = COLS.slice(3, 16);
-const SHIFTS = ["Morning", "Afternoon", "Night", "24 Hours"];
-const STATUSES = ["Recorded", "For Review"];
+// Sheet columns A to K, in this exact order (row 1 of the sheet must hold these headers)
+const COLS = ["id", "recordNo", "date", "timeIn", "timeOut", "code", "name", "college", "services", "rating", "comments"];
+const SERVICES = [
+  "Physical Exam", "FTF Consultation", "Online Consultation", "Referral",
+  "Minor Procedure", "Dental", "Medical Certificate", "BP", "RBS", "Clearance",
+];
+const CODES = ["S", "O", "D"]; // Student, Outsider, Dependent
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const TAB = process.env.SHEET_TAB || "Sheet1";
-const RANGE = `${TAB}!A2:T`;
+const RANGE = `${TAB}!A2:K`;
 
 const oauth = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const allowed = (process.env.ALLOWED_EMAILS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -36,16 +38,45 @@ async function authorize(req) {
   }
 }
 
-function clean(body = {}) {
-  const e = {};
-  for (const c of NUMERIC) e[c] = String(Math.max(0, Math.floor(Number(body[c]) || 0)));
-  e.date = /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : null;
-  e.shift = SHIFTS.includes(body.shift) ? body.shift : null;
-  e.status = STATUSES.includes(body.status) ? body.status : "Recorded";
-  e.nod = String(body.nod || "").trim().slice(0, 120);
-  e.notes = String(body.notes || "").trim().slice(0, 1000);
-  if (!e.date || !e.shift || !e.nod) return null;
+// Sheet row <-> entry object. "services" is stored as "A; B; C" in one cell.
+const toRow = (e) => COLS.map((c) => (c === "services" ? e.services.join("; ") : e[c] ?? ""));
+const fromRow = (r) => {
+  const o = Object.fromEntries(COLS.map((c, i) => [c, r[i] ?? ""]));
+  o.services = String(o.services).split("; ").filter(Boolean);
+  o.rating = Number(o.rating) || 0;
+  return o;
+};
+
+// New entry (Time In)
+function cleanNew(body = {}) {
+  const services = Array.isArray(body.services)
+    ? [...new Set(body.services.filter((s) => SERVICES.includes(s)))]
+    : [];
+  const e = {
+    date: /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : null,
+    timeIn: TIME.test(body.timeIn) ? body.timeIn : null,
+    timeOut: "",
+    code: CODES.includes(body.code) ? body.code : null,
+    name: String(body.name || "").trim().slice(0, 120),
+    college: String(body.college || "").trim().slice(0, 120),
+    services,
+    rating: "",
+    comments: "",
+  };
+  if (!e.date || !e.timeIn || !e.code || !e.name || !e.college || services.length === 0) return null;
   return e;
+}
+
+// Time Out + evaluation
+function cleanOut(body = {}) {
+  const rating = Number(body.rating);
+  if (!TIME.test(body.timeOut) || !Number.isInteger(rating) || rating < 1 || rating > 5) return null;
+  return { timeOut: body.timeOut, rating: String(rating), comments: String(body.comments || "").trim().slice(0, 500) };
+}
+
+async function readRows() {
+  const { data } = await sheets.spreadsheets.values.get({ spreadsheetId: process.env.SHEET_ID, range: RANGE });
+  return data.values || [];
 }
 
 export default async function handler(req, res) {
@@ -54,22 +85,46 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === "GET") {
-      const { data } = await sheets.spreadsheets.values.get({ spreadsheetId: process.env.SHEET_ID, range: RANGE });
-      return res.json((data.values || []).map((r) => Object.fromEntries(COLS.map((c, i) => [c, r[i] ?? ""]))));
+      return res.json((await readRows()).map(fromRow));
     }
+
     if (req.method === "POST") {
-      const e = clean(req.body);
+      const e = cleanNew(req.body);
       if (!e) return res.status(400).json({ error: "Invalid entry" });
+      const rows = await readRows();
+      const seq = rows.filter((r) => r[2] === e.date).length + 1; // column C = date
       e.id = crypto.randomUUID();
+      e.recordNo = e.date.replaceAll("-", "") + "-" + String(seq).padStart(3, "0");
       await sheets.spreadsheets.values.append({
         spreadsheetId: process.env.SHEET_ID,
         range: RANGE,
         valueInputOption: "RAW", // stored as plain text; never interpreted as formulas
-        requestBody: { values: [COLS.map((c) => e[c])] },
+        requestBody: { values: [toRow(e)] },
       });
-      return res.json(e);
+      return res.json({ ...e, rating: 0 });
     }
-    res.setHeader("Allow", "GET, POST").status(405).end();
+
+    if (req.method === "PATCH") {
+      const id = String(req.query.id || "");
+      const patch = cleanOut(req.body);
+      if (!id || !patch) return res.status(400).json({ error: "Invalid time out" });
+      const rows = await readRows();
+      const idx = rows.findIndex((r) => r[0] === id);
+      if (idx === -1) return res.status(404).json({ error: "Entry not found" });
+      const entry = fromRow(rows[idx]);
+      if (entry.timeOut) return res.status(409).json({ error: "Already timed out" });
+      const updated = { ...entry, ...patch };
+      const rowNum = idx + 2; // data starts on sheet row 2
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: process.env.SHEET_ID,
+        range: `${TAB}!A${rowNum}:K${rowNum}`,
+        valueInputOption: "RAW",
+        requestBody: { values: [toRow(updated)] },
+      });
+      return res.json({ ...updated, rating: Number(updated.rating) });
+    }
+
+    res.setHeader("Allow", "GET, POST, PATCH").status(405).end();
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
