@@ -10,7 +10,7 @@ const SERVICES = [
   "Minor Procedure", "Dental", "Medical Certificate", "BP", "RBS", "Clearance",
 ];
 // Code (RADIO, pick one)
-const CODES = { S: "Student", O: "Outsider" };
+const CODES = { S: "Student", O: "Outsider", D: "Dependent", E: "Employee"};
 // Patient evaluation (RADIO, pick one)
 const RATINGS = [[5, "Excellent"], [4, "Very Good"], [3, "Good"], [2, "Fair"], [1, "Poor"]];
 
@@ -20,7 +20,7 @@ const FIELDS = [
   ["date", "Date", "text"],
   ["timeIn", "Time In", "text"],
   ["timeOut", "Time Out", "text"],
-  ["code", "Code (S/O)", "code"],
+  ["code", "Code (S/O/D/E), "code"],
   ["name", "Name", "text"],
   ["college", "College/Department", "text"],
   ["services", "Reason for Visit", "list"],
