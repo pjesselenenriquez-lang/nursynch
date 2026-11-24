@@ -63,16 +63,6 @@ const opt = { display: "flex", alignItems: "center", gap: 6, fontWeight: 400 };
 
 // ---------- Glitter and shine effects (pure CSS animation, no image files needed) ----------
 const GLITTER_CSS = `
-.glitter-layer{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:50}
-.glitter{position:absolute;bottom:-24px;border-radius:50%;opacity:0;
-  background:radial-gradient(circle,#fff 0 25%,var(--c) 60%,transparent 72%);
-  box-shadow:0 0 8px var(--c);
-  animation:glitter-rise 12s linear infinite,glitter-twinkle 2s ease-in-out infinite}
-.glitter.star{border-radius:0;box-shadow:none;background:var(--c);
-  clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%)}
-@keyframes glitter-rise{0%{transform:translate(0,0) rotate(0)}100%{transform:translate(var(--x),-110vh) rotate(360deg)}}
-@keyframes glitter-twinkle{0%,100%{opacity:0}20%{opacity:1}50%{opacity:.35}80%{opacity:1}}
-
 /* gold bar flowing under the university name */
 .top .accent{background-image:linear-gradient(90deg,#f5a623,#fff3b0,#f5a623,#ffd66b,#f5a623);
   background-size:200% 100%;animation:gold-flow 3s linear infinite}
@@ -92,13 +82,14 @@ button.primary::after,.stat::after{content:"";position:absolute;top:0;left:-60%;
   color:transparent !important;-webkit-text-fill-color:transparent;animation:text-shine 4s linear infinite}
 @keyframes text-shine{0%{background-position:150% 0}100%{background-position:-150% 0}}
 
-/* soft colored aura drifting slowly behind the whole page */
-body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;
-  background:radial-gradient(circle at 20% 30%,rgba(197,139,255,.22),transparent 40%),
-             radial-gradient(circle at 80% 20%,rgba(255,213,74,.20),transparent 40%),
-             radial-gradient(circle at 60% 85%,rgba(255,158,216,.18),transparent 45%);
-  animation:aura 18s ease-in-out infinite alternate}
-@keyframes aura{from{transform:translate(0,0) scale(1)}to{transform:translate(4%,3%) scale(1.12)}}
+/* formal background: okir-inspired scroll pattern, soft maroon header wash, faint okir medallion */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22120%22%20height=%22120%22%20viewBox=%220%200%20120%20120%22%3E%3Cg%20transform=%22translate(30%2030)%20rotate(0)%20scale(1.0)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.16%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.08%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.08%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3Cg%20transform=%22translate(90%2030)%20rotate(90)%20scale(1.0)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.16%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.08%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.08%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3Cg%20transform=%22translate(30%2090)%20rotate(-90)%20scale(1.0)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.16%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.08%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.08%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3Cg%20transform=%22translate(90%2090)%20rotate(180)%20scale(1.0)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.16%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.08%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.08%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(180deg,rgba(107,15,90,.06),transparent 260px),
+    linear-gradient(135deg,#fbfafc,#f0ecf4)}
+body::after{content:"";position:fixed;right:-120px;bottom:-120px;width:520px;height:520px;z-index:-1;pointer-events:none;opacity:.12;
+  background:url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20200%20200%22%3E%3Ccircle%20cx=%22100%22%20cy=%22100%22%20r=%2294%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-width=%222%22/%3E%3Ccircle%20cx=%22100%22%20cy=%22100%22%20r=%2286%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-width=%22.8%22/%3E%3Ccircle%20cx=%22100%22%20cy=%22100%22%20r=%2220%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-width=%221.5%22/%3E%3Ccircle%20cx=%22100%22%20cy=%22100%22%20r=%225%22%20fill=%22%23d4a017%22/%3E%3Cg%20transform=%22translate(156.0%20100.0)%20rotate(90)%20scale(1.5)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.9%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3Cg%20transform=%22translate(139.6%20139.6)%20rotate(135)%20scale(1.5)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.9%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3Cg%20transform=%22translate(100.0%20156.0)%20rotate(180)%20scale(1.5)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.9%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3Cg%20transform=%22translate(60.4%20139.6)%20rotate(225)%20scale(1.5)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.9%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3Cg%20transform=%22translate(44.0%20100.0)%20rotate(270)%20scale(1.5)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.9%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3Cg%20transform=%22translate(60.4%2060.4)%20rotate(315)%20scale(1.5)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.9%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3Cg%20transform=%22translate(100.0%2044.0)%20rotate(360)%20scale(1.5)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.9%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3Cg%20transform=%22translate(139.6%2060.4)%20rotate(405)%20scale(1.5)%22%20fill=%22none%22%20stroke=%22%236b0f5a%22%20stroke-opacity=%22.9%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M-18%208C-18%20-6%20-2%20-6%200%200C2%206%2018%206%2018%20-8%22/%3E%3Cpath%20d=%22M-18%208C-18%2016%20-8%2018%20-8%2011C-8%207%20-13%207%20-13%2011%22/%3E%3Cpath%20d=%22M18%20-8C18%20-16%208%20-18%208%20-11C8%20-7%2013%20-7%2013%20-11%22/%3E%3Cpath%20d=%22M0%200C-4%20-10%20-12%20-14%20-16%20-10C-12%20-10%20-8%20-8%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Cpath%20d=%22M0%200C4%2010%2012%2014%2016%2010C12%2010%208%208%200%200Z%22%20fill=%22%236b0f5a%22%20fill-opacity=%22.25%22/%3E%3Ccircle%20cx=%220%22%20cy=%220%22%20r=%221.6%22%20fill=%22%23d4a017%22%20fill-opacity=%22.55%22%20stroke=%22none%22/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
 
 /* glowing logo and title */
 .seal{animation:seal-glow 3s ease-in-out infinite}
@@ -140,45 +131,11 @@ tbody tr.selected{background:linear-gradient(90deg,rgba(255,213,74,.28),rgba(197
 
 /* people who turn off animations in their device settings get a still page */
 @media (prefers-reduced-motion:reduce){
-  .glitter-layer{display:none}
   .shine-text,.top .accent,button.primary::after,.stat::after,
-  body::before,.seal,button.primary,.badge,.stat,.panel,.formarea,.notice{animation:none}
+  .seal,button.primary,.badge,.stat,.panel,.formarea,.notice{animation:none}
 }`;
-const GLITTER_COLORS = ["#ffd54a", "#ffffff", "#ff9ed8", "#c58bff", "#ffb347"];
-
-function Glitter({ count = 36 }) {
-  const bits = useMemo(
-    () =>
-      Array.from({ length: count }, (_, i) => ({
-        left: Math.random() * 100,
-        size: 4 + Math.random() * 9,
-        rise: 9 + Math.random() * 10,
-        twinkle: 1.5 + Math.random() * 2.5,
-        delay: -Math.random() * 18, // negative = already mid-flight when the page loads
-        x: Math.random() * 160 - 80 + "px",
-        color: GLITTER_COLORS[i % GLITTER_COLORS.length],
-        star: i % 3 === 0,
-      })),
-    [count]
-  );
-  return (
-    <>
-      <style>{GLITTER_CSS}</style>
-      <div className="glitter-layer" aria-hidden="true">
-        {bits.map((b, i) => (
-          <span
-            key={i}
-            className={"glitter" + (b.star ? " star" : "")}
-            style={{
-              left: b.left + "%", width: b.size, height: b.size, "--c": b.color, "--x": b.x,
-              animationDuration: `${b.rise}s, ${b.twinkle}s`,
-              animationDelay: `${b.delay}s, ${b.delay}s`,
-            }}
-          />
-        ))}
-      </div>
-    </>
-  );
+function Styles() {
+  return <style>{GLITTER_CSS}</style>;
 }
 
 export default function App() {
@@ -286,7 +243,7 @@ export default function App() {
   if (!token) {
     return (
       <main className="wrap" style={{ maxWidth: 480, textAlign: "center", marginTop: 80 }}>
-        <Glitter />
+        <Styles />
         <div className="seal" style={{ margin: "0 auto 16px" }}></div>
         <h2 className="shine-text" style={{ color: "var(--purple)", fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 400, margin: 0 }}>UgnayLunas</h2>
         <p className="muted">Sign in with a Google account to open the infirmary entrance logbook.</p>
@@ -303,7 +260,7 @@ export default function App() {
 
   return (
     <>
-      <Glitter />
+      <Styles />
       <header className="top">
         <div className="brand">
           <div className="seal" aria-label="MSU–General Santos text mark"></div>
