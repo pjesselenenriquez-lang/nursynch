@@ -10,7 +10,7 @@ const SERVICES = [
   "Minor Procedure", "Dental", "Medical Certificate", "BP", "RBS", "Clearance",
 ];
 // Code (RADIO, pick one)
-const CODES = { S: "Student", O: "Outsider", D: "Dependent", E: "Employee"};
+const CODES = { S: "Student", O: "Outsider", D: "Dependent", E: "Employee" };
 // Patient evaluation (RADIO, pick one)
 const RATINGS = [[5, "Excellent"], [4, "Very Good"], [3, "Good"], [2, "Fair"], [1, "Poor"]];
 
